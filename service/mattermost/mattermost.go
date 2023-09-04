@@ -8,7 +8,9 @@ import (
 	"io"
 	stdhttp "net/http"
 
-	"github.com/nikoksr/notify/service/http"
+	"github.com/pkg/errors"
+
+	"github.com/casdoor/notify/service/http"
 )
 
 type httpClient interface {

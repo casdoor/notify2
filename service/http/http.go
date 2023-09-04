@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 
-	"github.com/nikoksr/notify"
+	"github.com/pkg/errors"
+
+	"github.com/casdoor/notify"
 )
 
 type (
