@@ -15,9 +15,6 @@
 
 > <p align="center">A dead simple Go library for sending notifications to various messaging services.</p>
 
-> [!NOTE]
-> **[July 2024 Update]**: Notify is back under active maintenance! [Read the full announcement here](https://github.com/nikoksr/notify/discussions/840).
-
 <h1></h1>
 
 ## About <a id="about"></a>
@@ -102,6 +99,7 @@ Yes, please! Contributions of all kinds are very welcome! Feel free to check our
 | [Pushover](https://pushover.net/)                                                 | [service/pushover](service/pushover)     | [gregdel/pushover](https://github.com/gregdel/pushover)                                         | :heavy_check_mark: |
 | [Pushbullet](https://www.pushbullet.com)                                          | [service/pushbullet](service/pushbullet) | [cschomburg/go-pushbullet](https://github.com/cschomburg/go-pushbullet)                         | :heavy_check_mark: |
 | [Reddit](https://www.reddit.com)                                                  | [service/reddit](service/reddit)         | [vartanbeno/go-reddit](https://github.com/vartanbeno/go-reddit)                                 | :heavy_check_mark: |
+| [Reddit](https://www.reddit.com)                                                  | [service/reddit](service/reddit)         | [casdoor/go-reddit](https://github.com/casdoor/go-reddit)                                       | :heavy_check_mark: |
 | [RocketChat](https://rocket.chat)                                                 | [service/rocketchat](service/rocketchat) | [RocketChat/Rocket.Chat.Go.SDK](https://github.com/RocketChat/Rocket.Chat.Go.SDK)               | :heavy_check_mark: |
 | [SendGrid](https://sendgrid.com)                                                  | [service/sendgrid](service/sendgrid)     | [sendgrid/sendgrid-go](https://github.com/sendgrid/sendgrid-go)                                 | :heavy_check_mark: |
 | [Slack](https://slack.com)                                                        | [service/slack](service/slack)           | [slack-go/slack](https://github.com/slack-go/slack)                                             | :heavy_check_mark: |
