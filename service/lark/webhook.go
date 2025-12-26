@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-lark/lark"
 
-	"github.com/casdoor/notify"
+	"github.com/casdoor/notify2"
 )
 
 // WebhookService is a Notify service that uses a Lark webhook to send messages.

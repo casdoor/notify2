@@ -10,7 +10,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/casdoor/notify/service/http"
+	"github.com/casdoor/notify2/service/http"
 )
 
 type httpClient interface {

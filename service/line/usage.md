@@ -2,7 +2,7 @@
 
 Install notifier using:
 
-* `go get -u github.com/casdoor/notify`
+* `go get -u github.com/casdoor/notify2`
 
 
 ## Sample Code
@@ -11,8 +11,8 @@ Install notifier using:
 package main
 
 import (
-  "github.com/casdoor/notify"
-  "github.com/casdoor/notify/service/line"
+  "github.com/casdoor/notify2"
+  "github.com/casdoor/notify2/service/line"
   "golang.org/x/net/context"
 )
 
@@ -50,8 +50,8 @@ func main() {
 package main
 
 import (
-  "github.com/casdoor/notify"
-  "github.com/casdoor/notify/service/line"
+  "github.com/casdoor/notify2"
+  "github.com/casdoor/notify2/service/line"
   "golang.org/x/net/context"
 )
 

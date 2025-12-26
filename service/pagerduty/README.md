@@ -16,8 +16,8 @@
      "context"
      "log"
 
-     "github.com/nikoksr/notify"
-     "github.com/nikoksr/notify/service/pagerduty"
+     "github.com/casdoor/notify2"
+     "github.com/casdoor/notify2/service/pagerduty"
  )
 
  func main() {

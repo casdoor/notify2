@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/casdoor/notify/service/mail"
+	"github.com/casdoor/notify2/service/mail"
 )
 
 func TestNotifySend(t *testing.T) {

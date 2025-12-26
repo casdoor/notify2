@@ -2,7 +2,7 @@
 
 Ensure that you have already navigated to your GOPATH and installed the following packages:
 
-* `go get -u github.com/casdoor/notify`
+* `go get -u github.com/casdoor/notify2`
 * `go get github.com/cschomburg/go-pushbullet` - You might need this one too
 
 ## Steps for Pushbullet App
@@ -20,8 +20,8 @@ These are general and very high level instructions
 package main
 
 import (
-    "github.com/casdoor/notify"
-    "github.com/casdoor/notify/service/pushbullet"
+    "github.com/casdoor/notify2"
+    "github.com/casdoor/notify2/service/pushbullet"
 )
 
 func main() {
@@ -62,8 +62,8 @@ func main() {
 package main
 
 import (
-    "github.com/casdoor/notify"
-    "github.com/casdoor/notify/service/pushbullet"
+    "github.com/casdoor/notify2"
+    "github.com/casdoor/notify2/service/pushbullet"
 )
 
 func main() {

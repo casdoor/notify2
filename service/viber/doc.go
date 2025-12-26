@@ -9,8 +9,8 @@ Usage:
 	    "context"
 	    "log"
 
-	    "github.com/casdoor/notify"
-	    "github.com/casdoor/notify/service/viber"
+	    "github.com/casdoor/notify2"
+	    "github.com/casdoor/notify2/service/viber"
 	)
 
 	const appKey = "your-viber-token"

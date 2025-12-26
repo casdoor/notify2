@@ -26,8 +26,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/casdoor/notify"
-	"github.com/casdoor/notify/service/lark"
+	"github.com/casdoor/notify2"
+	"github.com/casdoor/notify2/service/lark"
 )
 
 // Replace this with your own webhook URL.
@@ -63,8 +63,8 @@ import (
 	"context"
 	"log"
 
-	"github.com/casdoor/notify"
-	"github.com/casdoor/notify/service/lark"
+	"github.com/casdoor/notify2"
+	"github.com/casdoor/notify2/service/lark"
 )
 
 // Replace these with the credentials from your custom app.

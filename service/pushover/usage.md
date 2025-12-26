@@ -2,7 +2,7 @@
 
 Ensure that you have already navigated to your GOPATH and installed the following packages:
 
-* `go get -u github.com/casdoor/notify`
+* `go get -u github.com/casdoor/notify2`
 
 ## Steps for Pushover App
 
@@ -19,8 +19,8 @@ These are general and very high level instructions
 package main
 
 import (
-    "github.com/casdoor/notify"
-    "github.com/casdoor/notify/service/pushover"
+    "github.com/casdoor/notify2"
+    "github.com/casdoor/notify2/service/pushover"
 )
 
 func main() {

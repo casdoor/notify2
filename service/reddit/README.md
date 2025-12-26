@@ -2,7 +2,7 @@
 
 Ensure that you have already navigated to your GOPATH and installed the following packages:
 
-* `go get -u github.com/casdoor/notify`
+* `go get -u github.com/casdoor/notify2`
 
 ## Steps for Reddit notifications
 

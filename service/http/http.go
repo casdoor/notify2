@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/casdoor/notify"
+	"github.com/casdoor/notify2"
 )
 
 type (

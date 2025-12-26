@@ -44,7 +44,7 @@ func New(clientID, clientSecret, username, password string) (*Reddit, error) {
 			Password: password,
 		},
 		reddit.WithHTTPClient(&h),
-		reddit.WithUserAgent("github.com/casdoor/notify"),
+		reddit.WithUserAgent("github.com/casdoor/notify2"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("create Reddit client: %w", err)

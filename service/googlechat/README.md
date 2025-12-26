@@ -1,6 +1,6 @@
 # Google Chat
 
-[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat)](https://pkg.go.dev/github.com/casdoor/notify/service/googlechat)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat)](https://pkg.go.dev/github.com/casdoor/notify2/service/googlechat)
 
 ## Prerequisites
 
@@ -39,8 +39,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/casdoor/notify"
-	"github.com/casdoor/notify/service/googlechat"
+	"github.com/casdoor/notify2"
+	"github.com/casdoor/notify2/service/googlechat"
 	"google.golang.org/api/chat/v1"
 	"google.golang.org/api/option"
 )

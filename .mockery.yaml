@@ -2,7 +2,7 @@ with-expecter: true
 mockname: "mock{{.InterfaceName}}"
 filename: "mock_{{.InterfaceName | snakecase}}.go"
 packages:
-  github.com/nikoksr/notify:
+  github.com/casdoor/notify2:
     config:
       dir: "{{.InterfaceDir}}"
       inpackage: true

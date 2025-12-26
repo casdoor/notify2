@@ -14,8 +14,8 @@ Usage:
 	  "context"
 	  "log"
 
-	  "github.com/casdoor/notify"
-	  "github.com/casdoor/notify/service/lark"
+	  "github.com/casdoor/notify2"
+	  "github.com/casdoor/notify2/service/lark"
 	)
 
 	const (
