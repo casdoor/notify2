@@ -47,7 +47,7 @@ mock:
 fmt:
 	@golines --shorten-comments -m 120 -w .
 	@gofumpt -w -l .
-	@gci write --section Standard --section Default --section "Prefix(github.com/casdoor/notify2)" .
+	@gci write -s standard -s default -s "Prefix(github.com/casdoor/notify2)" .
 .PHONY: fmt
 
 lint:
