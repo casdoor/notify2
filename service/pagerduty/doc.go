@@ -15,7 +15,7 @@
 //	    "log"
 //
 //	    "github.com/casdoor/notify2"
-//	    "github.com/casdoor/notify2/service/pagerduty"
+//	    "github.com/hanzoai/notify2/service/pagerduty"
 //	)
 //
 //	func main() {

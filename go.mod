@@ -1,4 +1,4 @@
-module github.com/casdoor/notify2
+module github.com/hanzoai/notify2
 
 go 1.22.7
 

@@ -17,7 +17,7 @@ Usage:
 		    stdhttp "net/http"
 
 		    "github.com/casdoor/notify2"
-		    "github.com/casdoor/notify2/service/http"
+		    "github.com/hanzoai/notify2/service/http"
 	    )
 
 	    func main() {

@@ -15,7 +15,7 @@ Usage:
 	  "log"
 
 	  "github.com/casdoor/notify2"
-	  "github.com/casdoor/notify2/service/lark"
+	  "github.com/hanzoai/notify2/service/lark"
 	)
 
 	const (

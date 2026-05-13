@@ -20,7 +20,7 @@ Usage:
 			    "strings"
 
 			    "github.com/casdoor/notify2"
-			    "github.com/casdoor/notify2/service/googlechat"
+			    "github.com/hanzoai/notify2/service/googlechat"
 			    "google.golang.org/api/chat/v1"
 			    "google.golang.org/api/option"
 			)

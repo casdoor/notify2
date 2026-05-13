@@ -9,7 +9,7 @@ Usage:
 		"context"
 
 		"github.com/casdoor/notify2"
-		"github.com/casdoor/notify2/service/reddit"
+		"github.com/hanzoai/notify2/service/reddit"
 	)
 
 	func main() {

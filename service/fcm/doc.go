@@ -10,7 +10,7 @@ Usage:
 		"log"
 
 		"github.com/casdoor/notify2"
-		"github.com/casdoor/notify2/service/fcm"
+		"github.com/hanzoai/notify2/service/fcm"
 	)
 
 	func main() {

@@ -9,7 +9,7 @@ Usage:
 		"os"
 
 		"github.com/casdoor/notify2"
-		"github.com/casdoor/notify2/service/mattermost"
+		"github.com/hanzoai/notify2/service/mattermost"
 	)
 
 	func main() {

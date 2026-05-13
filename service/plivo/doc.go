@@ -9,7 +9,7 @@ Usage:
 		"log"
 
 		"github.com/casdoor/notify2"
-		"github.com/casdoor/notify2/service/plivo"
+		"github.com/hanzoai/notify2/service/plivo"
 	)
 
 	func main() {

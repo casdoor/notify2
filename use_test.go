@@ -3,7 +3,7 @@ package notify
 import (
 	"testing"
 
-	"github.com/casdoor/notify2/service/mail"
+	"github.com/hanzoai/notify2/service/mail"
 )
 
 func TestUseServices(t *testing.T) {

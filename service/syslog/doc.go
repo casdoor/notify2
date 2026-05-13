@@ -12,7 +12,7 @@ Usage:
 	    sl "log/syslog"
 
 	    "github.com/casdoor/notify2"
-	    "github.com/casdoor/notify2/service/syslog"
+	    "github.com/hanzoai/notify2/service/syslog"
 	)
 
 	func main() {
