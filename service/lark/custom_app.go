@@ -8,7 +8,7 @@ import (
 
 	"github.com/go-lark/lark"
 
-	"github.com/casdoor/notify2"
+	"github.com/hanzoai/notify2"
 )
 
 const defaultTimeout = 10 * time.Second

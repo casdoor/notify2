@@ -8,7 +8,7 @@ Usage:
 	import (
 		"log"
 
-		"github.com/casdoor/notify2"
+		"github.com/hanzoai/notify2"
 		"github.com/hanzoai/notify2/service/plivo"
 	)
 
