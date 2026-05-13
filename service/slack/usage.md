@@ -2,7 +2,7 @@
 
 Ensure that you have already navigated to your GOPATH and installed the following packages:
 
-* `go get -u github.com/casdoor/notify2`
+* `go get -u github.com/hanzo-iam/notify2`
 * `go get github.com/slack-go/slack` - You might need this one too
 
 ## Steps for Slack App
@@ -21,8 +21,8 @@ These are general and very high level instructions
 package main
 
 import (
-    "github.com/casdoor/notify2"
-    "github.com/casdoor/notify2/service/slack"
+    "github.com/hanzo-iam/notify2"
+    "github.com/hanzo-iam/notify2/service/slack"
 )
 
 func main() {

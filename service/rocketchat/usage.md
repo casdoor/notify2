@@ -2,7 +2,7 @@
 
 Install notifier using:
 
-* `go get -u github.com/casdoor/notify2`
+* `go get -u github.com/hanzo-iam/notify2`
 
 
 ## Steps to follow
@@ -25,8 +25,8 @@ These are general and very high level instructions
 package main
 
 import (
-  "github.com/casdoor/notify2"
-  "github.com/casdoor/notify2/service/rocketchat"
+  "github.com/hanzo-iam/notify2"
+  "github.com/hanzo-iam/notify2/service/rocketchat"
   "golang.org/x/net/context"
 )
 

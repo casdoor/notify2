@@ -5,11 +5,11 @@
     alt="notify logo"
 />
 
-[![codecov](https://codecov.io/gh/casdoor/notify2/branch/main/graph/badge.svg?token=QDON0KO2WV)](https://codecov.io/gh/casdoor/notify2)
-[![Go Report Card](https://goreportcard.com/badge/github.com/casdoor/notify2)](https://goreportcard.com/report/github.com/casdoor/notify2)
-[![Codacy Badge](https://app.codacy.com/project/badge/Grade/37fdff3c275c4a72a3a061f2d0ec5553)](https://www.codacy.com/gh/casdoor/notify2/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=casdoor/notify2&amp;utm_campaign=Badge_Grade)
-[![Maintainability](https://api.codeclimate.com/v1/badges/b3afd7bf115341995077/maintainability)](https://codeclimate.com/github/casdoor/notify2/maintainability)
-[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat)](https://pkg.go.dev/github.com/casdoor/notify2)
+[![codecov](https://codecov.io/gh/hanzo-iam/notify2/branch/main/graph/badge.svg?token=QDON0KO2WV)](https://codecov.io/gh/hanzo-iam/notify2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/hanzo-iam/notify2)](https://goreportcard.com/report/github.com/hanzo-iam/notify2)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/37fdff3c275c4a72a3a061f2d0ec5553)](https://www.codacy.com/gh/hanzo-iam/notify2/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=hanzo-iam/notify2&amp;utm_campaign=Badge_Grade)
+[![Maintainability](https://api.codeclimate.com/v1/badges/b3afd7bf115341995077/maintainability)](https://codeclimate.com/github/hanzo-iam/notify2/maintainability)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat)](https://pkg.go.dev/github.com/hanzo-iam/notify2)
 
 </div>
 
@@ -32,7 +32,7 @@ Since Notify is highly dependent on the consistency of the supported external se
 ## Install <a id="install"></a>
 
 ```sh
-go get -u github.com/casdoor/notify2
+go get -u github.com/hanzo-iam/notify2
 ```
 
 ## Example usage <a id="usage"></a>
@@ -65,17 +65,17 @@ In this example, we use the global `Send()` function. Similar to most logging li
 libraries, we also recommend avoiding the use of global functions as much as possible. Instead, use one of our versatile
 constructor functions to create a new local `Notify` instance and pass it down the stream.
 
-Read the [library docs](https://pkg.go.dev/github.com/casdoor/notify2#section-documentation) for more information.
+Read the [library docs](https://pkg.go.dev/github.com/hanzo-iam/notify2#section-documentation) for more information.
 
 ## Contributing <a id="contributing"></a>
 
-Yes, please! Contributions of all kinds are very welcome! Feel free to check our [open issues](https://github.com/casdoor/notify2/issues). Please also take a look at the [contribution guidelines](https://github.com/casdoor/notify2/blob/main/CONTRIBUTING.md).
+Yes, please! Contributions of all kinds are very welcome! Feel free to check our [open issues](https://github.com/hanzo-iam/notify2/issues). Please also take a look at the [contribution guidelines](https://github.com/hanzo-iam/notify2/blob/main/CONTRIBUTING.md).
 
-> Psst, don't forget to check the list of [missing services](https://github.com/casdoor/notify2/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3Aaffects%2Fservices+label%3A%22help+wanted%22+no%3Aassignee) waiting to be added by you or create [a new issue](https://github.com/casdoor/notify2/issues/new?assignees=&labels=affects%2Fservices%2C+good+first+issue%2C+hacktoberfest%2C+help+wanted%2C+type%2Fenhancement%2C+up+for+grabs&template=service-request.md&title=feat%28service%29%3A+Add+%5BSERVICE+NAME%5D+service) if you want a new service to be added.
+> Psst, don't forget to check the list of [missing services](https://github.com/hanzo-iam/notify2/issues?q=is%3Aissue+is%3Aopen+sort%3Aupdated-desc+label%3Aaffects%2Fservices+label%3A%22help+wanted%22+no%3Aassignee) waiting to be added by you or create [a new issue](https://github.com/hanzo-iam/notify2/issues/new?assignees=&labels=affects%2Fservices%2C+good+first+issue%2C+hacktoberfest%2C+help+wanted%2C+type%2Fenhancement%2C+up+for+grabs&template=service-request.md&title=feat%28service%29%3A+Add+%5BSERVICE+NAME%5D+service) if you want a new service to be added.
 
 ## Supported services <a id="supported_services"></a>
 
-> Click [here](https://github.com/casdoor/notify2/issues/new?assignees=&labels=affects%2Fservices%2C+good+first+issue%2C+hacktoberfest%2C+help+wanted%2C+type%2Fenhancement%2C+up+for+grabs&template=service-request.md&title=feat%28service%29%3A+Add+%5BSERVICE+NAME%5D+service) to request a missing service.
+> Click [here](https://github.com/hanzo-iam/notify2/issues/new?assignees=&labels=affects%2Fservices%2C+good+first+issue%2C+hacktoberfest%2C+help+wanted%2C+type%2Fenhancement%2C+up+for+grabs&template=service-request.md&title=feat%28service%29%3A+Add+%5BSERVICE+NAME%5D+service) to request a missing service.
 
 | Service                                                                           | Path                                     | Credits                                                                                         |       Status       |
 |-----------------------------------------------------------------------------------|------------------------------------------|-------------------------------------------------------------------------------------------------|:------------------:|
@@ -99,7 +99,7 @@ Yes, please! Contributions of all kinds are very welcome! Feel free to check our
 | [Pushover](https://pushover.net/)                                                 | [service/pushover](service/pushover)     | [gregdel/pushover](https://github.com/gregdel/pushover)                                         | :heavy_check_mark: |
 | [Pushbullet](https://www.pushbullet.com)                                          | [service/pushbullet](service/pushbullet) | [cschomburg/go-pushbullet](https://github.com/cschomburg/go-pushbullet)                         | :heavy_check_mark: |
 | [Reddit](https://www.reddit.com)                                                  | [service/reddit](service/reddit)         | [vartanbeno/go-reddit](https://github.com/vartanbeno/go-reddit)                                 | :heavy_check_mark: |
-| [Reddit](https://www.reddit.com)                                                  | [service/reddit](service/reddit)         | [casdoor/go-reddit](https://github.com/casdoor/go-reddit)                                       | :heavy_check_mark: |
+| [Reddit](https://www.reddit.com)                                                  | [service/reddit](service/reddit)         | [hanzo-iam/go-reddit](https://github.com/hanzo-iam/go-reddit)                                       | :heavy_check_mark: |
 | [RocketChat](https://rocket.chat)                                                 | [service/rocketchat](service/rocketchat) | [RocketChat/Rocket.Chat.Go.SDK](https://github.com/RocketChat/Rocket.Chat.Go.SDK)               | :heavy_check_mark: |
 | [SendGrid](https://sendgrid.com)                                                  | [service/sendgrid](service/sendgrid)     | [sendgrid/sendgrid-go](https://github.com/sendgrid/sendgrid-go)                                 | :heavy_check_mark: |
 | [Slack](https://slack.com)                                                        | [service/slack](service/slack)           | [slack-go/slack](https://github.com/slack-go/slack)                                             | :heavy_check_mark: |
@@ -129,4 +129,4 @@ If you find this project useful, consider giving it a ⭐️! Your support helps
 
 While you're here, feel free to check out my other work:
 
-- [nikoksr/konfetty](https://github.com/casdoor/konfetty) - Zero-dependency, type-safe and powerful post-processing for your existing config solution in Go.
+- [nikoksr/konfetty](https://github.com/hanzo-iam/konfetty) - Zero-dependency, type-safe and powerful post-processing for your existing config solution in Go.

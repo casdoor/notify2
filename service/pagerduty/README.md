@@ -16,8 +16,8 @@
      "context"
      "log"
 
-     "github.com/casdoor/notify2"
-     "github.com/casdoor/notify2/service/pagerduty"
+     "github.com/hanzo-iam/notify2"
+     "github.com/hanzo-iam/notify2/service/pagerduty"
  )
 
  func main() {

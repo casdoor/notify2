@@ -15,8 +15,8 @@ import (
   "context"
   "log"
 
-  "github.com/casdoor/notify2"
-  "github.com/casdoor/notify2/service/textmagic"
+  "github.com/hanzo-iam/notify2"
+  "github.com/hanzo-iam/notify2/service/textmagic"
 )
 
 func main() {

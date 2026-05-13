@@ -42,8 +42,8 @@ import (
   "context"
   "fmt"
   "net/http"
-  "github.com/casdoor/notify2"
-  "github.com/casdoor/notify2/service/wechat"
+  "github.com/hanzo-iam/notify2"
+  "github.com/hanzo-iam/notify2/service/wechat"
 )
 
 func main() {

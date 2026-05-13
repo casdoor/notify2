@@ -1,6 +1,6 @@
 # Plivo
 
-[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat)](https://pkg.go.dev/github.com/casdoor/notify2/service/plivo)
+[![go.dev reference](https://img.shields.io/badge/go.dev-reference-007d9c?logo=go&logoColor=white&style=flat)](https://pkg.go.dev/github.com/hanzo-iam/notify2/service/plivo)
 
 ## Prerequisites
 
@@ -19,8 +19,8 @@ import (
   "context"
   "log"
 
-  "github.com/casdoor/notify2"
-  "github.com/casdoor/notify2/service/plivo"
+  "github.com/hanzo-iam/notify2"
+  "github.com/hanzo-iam/notify2/service/plivo"
 )
 
 func main() {
