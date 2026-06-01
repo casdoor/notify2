@@ -15,5 +15,9 @@ jobs:
     uses: hanzoai/.github/.github/workflows/docker-build.yml@main
     with:
       image: ghcr.io/hanzoai/notify
-      platforms: linux/amd64,linux/arm64
+      # arm64 paused org-wide (DOKS has no arm64 droplets — see hanzo
+      # LLM.md "arm64 paused 2026-04-27"). amd64-only is the canonical
+      # build path; armv8 consumers build from source until DO ships
+      # arm64 instances and `hanzo-build-linux-arm64` ARC is unpaused.
+      platforms: linux/amd64
     secrets: inherit
