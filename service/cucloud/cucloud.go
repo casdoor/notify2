@@ -21,7 +21,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"net/http"
 	"net/url"
@@ -125,7 +125,7 @@ func (c *CuCloud) Send(ctx context.Context, subject, content string) error {
 	}
 
 	if respBody.Code != 200 {
-		return fmt.Errorf(respBody.Message)
+		return errors.New(respBody.Message)
 	}
 
 	return nil

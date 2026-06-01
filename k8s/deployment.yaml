@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifyd
+  labels:
+    app: notifyd
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: notifyd
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: notifyd
+    spec:
+      containers:
+        - name: notifyd
+          image: notifyd
+          imagePullPolicy: IfNotPresent
+          args:
+            - serve
+            - --http
+            - 0.0.0.0:8090
+            - --dir
+            - /var/lib/notify
+          ports:
+            - name: http
+              containerPort: 8090
+          env:
+            - name: IAM_ENDPOINT
+              value: https://hanzo.id
+            - name: KMS_ENDPOINT
+              value: zap://kms.hanzo.svc.cluster.local:9999
+            - name: IAM_APP
+              value: hanzo-notify
+            - name: TASKS_ADDR
+              value: tasks.hanzo.svc.cluster.local:9999
+            - name: TASKS_NAMESPACE
+              value: notify
+            - name: TASKS_QUEUE
+              value: notify-send
+          envFrom:
+            # IAM_CLIENT_ID + IAM_CLIENT_SECRET come from a KMSSecret
+            # CR named notify-iam, populated by hanzoai/cloud's
+            # operator from KMS at boot.
+            - secretRef:
+                name: notify-iam
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/notify
+          livenessProbe:
+            httpGet:
+              path: /v1/notify/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /v1/notify/health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 512Mi
+      volumes:
+        # The embedded SQLite lives in the pod's emptyDir for a
+        # baseline stateless rollout; switch to a PVC when retention
+        # of the meter ledger becomes a requirement.
+        - name: data
+          emptyDir: {}

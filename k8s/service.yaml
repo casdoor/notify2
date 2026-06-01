@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: notifyd
+  labels:
+    app: notifyd
+spec:
+  type: ClusterIP
+  selector:
+    app: notifyd
+  ports:
+    - name: http
+      port: 8090
+      targetPort: http
