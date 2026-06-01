@@ -8,7 +8,7 @@ import (
 	"io"
 	stdhttp "net/http"
 
-	"github.com/hanzoai/notify2/service/http"
+	"github.com/hanzoai/notify/service/http"
 )
 
 type httpClient interface {

@@ -14,8 +14,8 @@ Usage:
 	  "context"
 	  "log"
 
-	  "github.com/hanzoai/notify2"
-	  "github.com/hanzoai/notify2/service/lark"
+	  "github.com/hanzoai/notify"
+	  "github.com/hanzoai/notify/service/lark"
 	)
 
 	const (

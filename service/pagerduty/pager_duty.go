@@ -6,7 +6,7 @@ import (
     "fmt"
 
     "github.com/PagerDuty/go-pagerduty"
-    "github.com/hanzoai/notify2"
+    "github.com/hanzoai/notify"
 )
 
 type Client interface {

@@ -1,4 +1,4 @@
-module github.com/hanzoai/notify2
+module github.com/hanzoai/notify
 
 go 1.22.7
 

@@ -9,8 +9,8 @@ Usage:
 	    "context"
 	    "log"
 
-	    "github.com/hanzoai/notify2"
-	    "github.com/hanzoai/notify2/service/viber"
+	    "github.com/hanzoai/notify"
+	    "github.com/hanzoai/notify/service/viber"
 	)
 
 	const appKey = "your-viber-token"

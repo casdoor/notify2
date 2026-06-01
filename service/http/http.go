@@ -11,7 +11,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/hanzoai/notify2"
+	"github.com/hanzoai/notify"
 )
 
 type (

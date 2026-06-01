@@ -14,8 +14,8 @@
 //	    "context"
 //	    "log"
 //
-//	    "github.com/hanzoai/notify2"
-//	    "github.com/hanzoai/notify2/service/pagerduty"
+//	    "github.com/hanzoai/notify"
+//	    "github.com/hanzoai/notify/service/pagerduty"
 //	)
 //
 //	func main() {

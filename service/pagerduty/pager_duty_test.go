@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	gopagerduty "github.com/PagerDuty/go-pagerduty"
-	"github.com/hanzoai/notify2/service/pagerduty"
+	"github.com/hanzoai/notify/service/pagerduty"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

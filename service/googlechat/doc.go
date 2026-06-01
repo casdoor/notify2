@@ -19,8 +19,8 @@ Usage:
 			    "log"
 			    "strings"
 
-			    "github.com/hanzoai/notify2"
-			    "github.com/hanzoai/notify2/service/googlechat"
+			    "github.com/hanzoai/notify"
+			    "github.com/hanzoai/notify/service/googlechat"
 			    "google.golang.org/api/chat/v1"
 			    "google.golang.org/api/option"
 			)

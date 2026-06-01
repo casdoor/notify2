@@ -9,7 +9,7 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"github.com/appleboy/go-fcm"
 
-	"github.com/hanzoai/notify2"
+	"github.com/hanzoai/notify"
 )
 
 // Compile-time check that Service satisfies the Notifier interface.

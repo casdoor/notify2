@@ -16,8 +16,8 @@ Usage:
 		    "log"
 		    stdhttp "net/http"
 
-		    "github.com/hanzoai/notify2"
-		    "github.com/hanzoai/notify2/service/http"
+		    "github.com/hanzoai/notify"
+		    "github.com/hanzoai/notify/service/http"
 	    )
 
 	    func main() {
@@ -26,7 +26,7 @@ Usage:
 
 			//
 			// In the following example, we will send two requests to the same HTTP endpoint. This is meant to be used with
-			// Notify's test http server: https://github.com/hanzoai/notify2-http-test. It supports multiple content-types on the
+			// Notify's test http server: https://github.com/hanzoai/notify-http-test. It supports multiple content-types on the
 			// same endpoint, to simplify testing. All you have to do is run `go run main.go` in the test server's directory and
 			// this example will work.
 			// So the following example should send two requests to the same endpoint, one with content-type
