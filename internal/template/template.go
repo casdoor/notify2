@@ -34,10 +34,13 @@ type Resolved struct {
 }
 
 // LoadPublished fetches the latest published version of (tenant, name).
-// When channel is non-empty, a channel-scoped row is preferred and the
-// channel-agnostic fallback only fires if no channel match exists. This
-// keeps a tenant from having to maintain disjoint template names per
-// channel — one name + one row per (channel) is enough.
+//
+// The lookup key is (tenant, name) when channel is empty, and
+// (tenant, name, channel) when channel is non-empty. There is no
+// silent fall-through between the two: an SMS request for which no
+// SMS-channel template exists is an error, not "give me the email
+// version anyway". This keeps the wire contract honest — channel
+// in == channel out.
 //
 // Returns a "not found" error when no row matches; the routes layer
 // maps that to HTTP 400.
@@ -45,51 +48,30 @@ func LoadPublished(app core.App, tenant, idOrName, channel string) (*core.Record
 	if tenant == "" || idOrName == "" {
 		return nil, errors.New("template: tenant and id are required")
 	}
-	// Try lookup by row id first (id is short ulid-like in base); fall
-	// back to (tenant,name,status=published) for human-readable refs.
+	// Direct hit by row id wins regardless of channel — explicit pin
+	// from the caller, validated against tenant + published status.
 	if rec, _ := app.FindRecordById(schema.Templates, idOrName); rec != nil &&
 		rec.GetString("tenant") == tenant &&
 		rec.GetString("status") == schema.TemplateStatusPublished {
 		return rec, nil
 	}
-	// Prefer (tenant, name, channel, status=published) when channel is known.
-	if channel != "" {
-		rows, err := app.FindRecordsByFilter(
-			schema.Templates,
-			"tenant = {:tenant} && name = {:name} && channel = {:channel} && status = {:status}",
-			"-version",
-			1, 0,
-			dbx.Params{
-				"tenant":  tenant,
-				"name":    idOrName,
-				"channel": channel,
-				"status":  schema.TemplateStatusPublished,
-			},
-		)
-		if err != nil {
-			return nil, fmt.Errorf("template: lookup: %w", err)
-		}
-		if len(rows) > 0 {
-			return rows[0], nil
-		}
+	filter := "tenant = {:tenant} && name = {:name} && status = {:status}"
+	params := dbx.Params{
+		"tenant": tenant,
+		"name":   idOrName,
+		"status": schema.TemplateStatusPublished,
 	}
-	rows, err := app.FindRecordsByFilter(
-		schema.Templates,
-		"tenant = {:tenant} && name = {:name} && status = {:status}",
-		"-version",
-		1, 0,
-		dbx.Params{
-			"tenant": tenant,
-			"name":   idOrName,
-			"status": schema.TemplateStatusPublished,
-		},
-	)
+	if channel != "" {
+		filter += " && channel = {:channel}"
+		params["channel"] = channel
+	}
+	rows, err := app.FindRecordsByFilter(schema.Templates, filter, "-version", 1, 0, params)
 	if err != nil {
 		return nil, fmt.Errorf("template: lookup: %w", err)
 	}
 	if len(rows) == 0 {
 		if channel != "" {
-			return nil, fmt.Errorf("template: no published template %q (channel=%s) for tenant %s", idOrName, channel, tenant)
+			return nil, fmt.Errorf("template: no published %q template on %s for tenant %s", idOrName, channel, tenant)
 		}
 		return nil, fmt.Errorf("template: no published template %q for tenant %s", idOrName, tenant)
 	}
