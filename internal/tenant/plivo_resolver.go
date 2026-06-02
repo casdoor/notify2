@@ -44,7 +44,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hanzoai/base/plugins/platform"
+	"github.com/hanzoai/notify/internal/kmsbridge"
 )
 
 // DefaultBrand is the brand slug whose KMS credentials are used when the
@@ -109,12 +109,12 @@ type PlivoConfig struct {
 // instance per process is enough — the underlying KMSClient already
 // memoizes secrets for 1m TTL.
 type PlivoResolver struct {
-	kms *platform.KMSClient
+	kms *kmsbridge.Client
 }
 
 // NewPlivoResolver returns a PlivoResolver bound to the given KMS
 // client. A nil KMS client is rejected at boot — fail-closed.
-func NewPlivoResolver(kms *platform.KMSClient) (*PlivoResolver, error) {
+func NewPlivoResolver(kms *kmsbridge.Client) (*PlivoResolver, error) {
 	if kms == nil {
 		return nil, errors.New("plivo resolver: KMS client is required (multi-brand fallback cannot run without KMS)")
 	}

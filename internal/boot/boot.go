@@ -1,46 +1,73 @@
 // Package boot wires the shared dependencies notifyd needs at startup.
 //
 // In particular the KMS client: notifyd reads per-tenant provider
-// credentials out of Hanzo KMS, but it does NOT speak kmsclient
-// directly — instead it borrows the platform plugin's KMS facade
-// (github.com/hanzoai/base/plugins/platform.KMSClient) which already
-// handles the IAM client_credentials exchange, transport selection
-// (HTTP vs. ZAP), and a thin secret cache.
+// credentials out of Hanzo KMS via internal/kmsbridge — a tiny, self-
+// contained HTTP client that targets the canonical
+// `/v1/kms/orgs/{org}/secrets/{path}/{name}` routes the deployed
+// luxfi/kms server actually serves.
+//
+// Why not borrow `github.com/hanzoai/base/plugins/platform.KMSClient`?
+// That client at the version notify pins (`hanzoai/base v1.3.0`) still
+// targets the legacy Infisical URLs (`/api/v1/secrets/{org}/{path}`).
+// Bumping base to pick up the post-v1.3.0 platform/kms rewrite would
+// carry every other unrelated change since then. The bridge avoids
+// that by hitting KMS directly from notify.
 //
 // Boot is intentionally tiny: one constructor + an env reader. The
 // rest of the wiring lives in main.go.
 package boot
 
 import (
+	"log"
 	"os"
 
-	"github.com/hanzoai/base/plugins/platform"
+	"github.com/hanzoai/notify/internal/kmsbridge"
 )
 
-// KMSEndpoint returns the configured KMS endpoint or the canonical
-// in-cluster default. The platform plugin treats an empty endpoint as
+// KMSEndpoint returns the configured KMS endpoint or empty. Empty means
 // "KMS disabled" — the resolver then falls back to env-var credentials.
 func KMSEndpoint() string {
 	return envOr("KMS_ENDPOINT", "")
 }
 
+// IAMEndpoint returns the configured IAM endpoint or empty. Required
+// for the IAM client_credentials grant unless KMS_AUTH_TOKEN is set.
+func IAMEndpoint() string {
+	return envOr("IAM_ENDPOINT", "https://hanzo.id")
+}
+
 // KMSAuthToken returns the optional static bearer token for KMS. In
-// production this stays empty and kmsclient runs the IAM
-// client_credentials exchange via the platform plugin's IAM
-// configuration. Tests use a static token to short-circuit IAM.
+// production this stays empty and the bridge runs the IAM
+// client_credentials exchange. Tests use a static token to
+// short-circuit IAM.
 func KMSAuthToken() string {
 	return os.Getenv("KMS_AUTH_TOKEN")
 }
 
-// NewKMSClient is a thin wrapper over platform.NewKMSClient. Returns
-// nil when KMS_ENDPOINT is unset — callers must handle that case
-// (nil is the well-defined "no KMS" mode, not an error).
-func NewKMSClient() *platform.KMSClient {
+// NewKMSClient builds a kmsbridge.Client from env. Returns nil when
+// KMS_ENDPOINT is unset — callers must handle that case (nil is the
+// well-defined "no KMS" mode, not an error).
+//
+// Misconfiguration (e.g. KMS_ENDPOINT set but IAM_CLIENT_ID missing) is
+// a fatal log; we want pods to crashloop loudly rather than silently
+// run with broken KMS and fail every OTP send at request time.
+func NewKMSClient() *kmsbridge.Client {
 	ep := KMSEndpoint()
 	if ep == "" {
 		return nil
 	}
-	return platform.NewKMSClient(ep, KMSAuthToken())
+	cfg := kmsbridge.Config{
+		KMSEndpoint:  ep,
+		IAMEndpoint:  IAMEndpoint(),
+		ClientID:     os.Getenv("IAM_CLIENT_ID"),
+		ClientSecret: os.Getenv("IAM_CLIENT_SECRET"),
+		StaticBearer: KMSAuthToken(),
+	}
+	c, err := kmsbridge.New(cfg)
+	if err != nil {
+		log.Fatalf("boot: kmsbridge.New: %v", err)
+	}
+	return c
 }
 
 func envOr(k, d string) string {

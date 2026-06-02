@@ -21,10 +21,10 @@ import (
 	"strings"
 
 	"github.com/hanzoai/base/core"
-	"github.com/hanzoai/base/plugins/platform"
 	"github.com/hanzoai/dbx"
 
 	"github.com/hanzoai/notify"
+	"github.com/hanzoai/notify/internal/kmsbridge"
 	"github.com/hanzoai/notify/internal/schema"
 	"github.com/hanzoai/notify/service/mail"
 	"github.com/hanzoai/notify/service/plivo"
@@ -32,17 +32,16 @@ import (
 )
 
 // Resolver is the entry point routes call. It owns the base app
-// (to look up provider rows) and the platform-side KMS facade
-// (to fetch credentials).
+// (to look up provider rows) and the KMS bridge (to fetch credentials).
 type Resolver struct {
 	app core.App
-	kms *platform.KMSClient
+	kms *kmsbridge.Client
 }
 
 // New returns a Resolver bound to the given app + KMS client. A nil
 // KMS client is allowed; in that mode the resolver falls back to env
 // var credentials, which is the local-dev / scratch-image path.
-func New(app core.App, kms *platform.KMSClient) *Resolver {
+func New(app core.App, kms *kmsbridge.Client) *Resolver {
 	return &Resolver{app: app, kms: kms}
 }
 

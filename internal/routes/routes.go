@@ -12,8 +12,8 @@ import (
 
 	"github.com/hanzoai/base"
 	"github.com/hanzoai/base/core"
-	"github.com/hanzoai/base/plugins/platform"
 
+	"github.com/hanzoai/notify/internal/kmsbridge"
 	"github.com/hanzoai/notify/internal/tasks"
 	"github.com/hanzoai/notify/internal/tenant"
 )
@@ -32,7 +32,7 @@ type Config struct {
 	// KMSClient is the KMS facade. Required by the brand override
 	// endpoints (/v1/notify/brand/plivo*). Nil → those endpoints return
 	// 503 (local-dev path).
-	KMSClient *platform.KMSClient
+	KMSClient *kmsbridge.Client
 
 	// PlivoResolver handles per-brand Plivo credential resolution with
 	// fallback to the Liquidity default. Nil → /v1/notify/brand/plivo*

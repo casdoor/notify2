@@ -10,11 +10,11 @@ import (
 )
 
 // fakeKMSReader is the minimal surface ResolvePlivoConfig hits. We do
-// NOT exercise the real *platform.KMSClient here because it dials KMS
-// on construct — that's an integration concern. Instead this test
-// targets the brand-fallback logic, mocking the KMS get path.
+// NOT exercise the real *kmsbridge.Client here because it dials KMS
+// over HTTP — that's an integration concern. Instead this test targets
+// the brand-fallback logic, mocking the KMS get path.
 //
-// Wire-up: NewPlivoResolver requires a *platform.KMSClient. To keep
+// Wire-up: NewPlivoResolver requires a *kmsbridge.Client. To keep
 // tests honest, we test the inner brand-resolution logic against a
 // shim that mirrors the same interface shape and routes through the
 // same code path.

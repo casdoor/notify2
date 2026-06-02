@@ -37,9 +37,9 @@ import (
 	"github.com/hanzoai/base"
 	"github.com/hanzoai/base/apis"
 	"github.com/hanzoai/base/core"
-	"github.com/hanzoai/base/plugins/platform"
 	"github.com/hanzoai/base/tools/router"
 
+	"github.com/hanzoai/notify/internal/kmsbridge"
 	"github.com/hanzoai/notify/internal/tenant"
 	"github.com/hanzoai/notify/service/plivo"
 )
@@ -80,14 +80,14 @@ type brandPlivoTestOut struct {
 // when the binary has both a KMS facade and a PlivoResolver. In local
 // dev (no KMS) the routes return 503 — the override surface is
 // production-only.
-func MountBrandPlivo(r *router.Router[*core.RequestEvent], app *base.Base, kms *platform.KMSClient, resolver *tenant.PlivoResolver) {
+func MountBrandPlivo(r *router.Router[*core.RequestEvent], app *base.Base, kms *kmsbridge.Client, resolver *tenant.PlivoResolver) {
 	r.GET("/v1/notify/brand/plivo", handleBrandPlivoGet(kms, resolver))
 	r.PUT("/v1/notify/brand/plivo", handleBrandPlivoPut(kms))
 	r.DELETE("/v1/notify/brand/plivo", handleBrandPlivoDelete(kms))
 	r.POST("/v1/notify/brand/plivo/test", handleBrandPlivoTest(resolver))
 }
 
-func handleBrandPlivoGet(kms *platform.KMSClient, resolver *tenant.PlivoResolver) func(*core.RequestEvent) error {
+func handleBrandPlivoGet(kms *kmsbridge.Client, resolver *tenant.PlivoResolver) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		brand, err := orgFromRequest(e)
 		if err != nil {
@@ -125,7 +125,7 @@ func handleBrandPlivoGet(kms *platform.KMSClient, resolver *tenant.PlivoResolver
 	}
 }
 
-func handleBrandPlivoPut(kms *platform.KMSClient) func(*core.RequestEvent) error {
+func handleBrandPlivoPut(kms *kmsbridge.Client) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		brand, err := orgFromRequest(e)
 		if err != nil {
@@ -166,7 +166,7 @@ func handleBrandPlivoPut(kms *platform.KMSClient) func(*core.RequestEvent) error
 	}
 }
 
-func handleBrandPlivoDelete(kms *platform.KMSClient) func(*core.RequestEvent) error {
+func handleBrandPlivoDelete(kms *kmsbridge.Client) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		brand, err := orgFromRequest(e)
 		if err != nil {
