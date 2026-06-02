@@ -6,11 +6,14 @@
 # resource limits across both.
 
 # ─── build stage ───────────────────────────────────────────────────────
-FROM golang:1.26.3-alpine AS build
+# Debian-based golang image — git + ca-certificates + tzdata pre-baked,
+# no `apk add` against dl-cdn.alpinelinux.org which the hanzo home-lab
+# runner can't reach reliably. Adds ~50MB to the build layer (discarded
+# at the FROM scratch hand-off so the final image is unaffected).
+FROM golang:1.26.3 AS build
 WORKDIR /src
-RUN apk add --no-cache git ca-certificates tzdata && \
-    addgroup -g 65532 -S nonroot && \
-    adduser  -u 65532 -S nonroot -G nonroot
+RUN groupadd -g 65532 nonroot && \
+    useradd  -u 65532 -g 65532 -M -s /usr/sbin/nologin nonroot
 
 # Cache the module graph first.
 COPY go.mod go.sum ./
