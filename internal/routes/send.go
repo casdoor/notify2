@@ -76,6 +76,19 @@ func sendHandler(app core.App, cfg Config, pinnedChannel string) func(*core.Requ
 				body.TemplateID = ev.GetString("template_id")
 			}
 		}
+		// Convenience fallback: when the caller supplies an event name
+		// but no template_id and no event row resolved (or the event row
+		// did not declare a template_id), try to load a published
+		// template whose name equals the event name. This is the
+		// IAM/auth-OTP path: hanzoai/iam sends `event="iam.otp_sent"`
+		// + template_vars and relies on the tenant having a published
+		// template named "iam.otp_sent" — without this fallback every
+		// such send 400s unless the tenant also pre-registers a matching
+		// events catalog row, which is needless ceremony for the 1:1
+		// event→template common case.
+		if body.TemplateID == "" && body.Body == "" && body.Event != "" {
+			body.TemplateID = body.Event
+		}
 		if body.Channel == "" {
 			return apis.NewBadRequestError("channel is required (either in body or in the event policy)", nil)
 		}
