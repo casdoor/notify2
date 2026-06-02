@@ -8,7 +8,9 @@
 # ─── build stage ───────────────────────────────────────────────────────
 FROM golang:1.26.3-alpine AS build
 WORKDIR /src
-RUN apk add --no-cache git
+RUN apk add --no-cache git ca-certificates tzdata && \
+    addgroup -g 65532 -S nonroot && \
+    adduser  -u 65532 -S nonroot -G nonroot
 
 # Cache the module graph first.
 COPY go.mod go.sum ./
@@ -28,15 +30,20 @@ RUN go build \
       ./cmd/notifyd
 
 # ─── runtime stage ─────────────────────────────────────────────────────
-# Distroless static-debian12:nonroot, hosted on GHCR under the hanzoai
-# namespace. No gcr.io anywhere in lux/hanzo/zoo — every base image
-# pulls from ghcr.io, every service image from our own registry.
-FROM ghcr.io/hanzoai/debian12:static-nonroot
+# Scratch — zero base image dependency, zero registry auth, zero attack
+# surface. The build stage above supplies ca-certs, tzdata, /etc/passwd
+# + /etc/group for the nonroot user. CGO is off so the static binary
+# needs nothing else at runtime.
+FROM scratch
 LABEL service=notify
 LABEL org.opencontainers.image.source="https://github.com/hanzoai/notify"
 LABEL org.opencontainers.image.vendor="Hanzo AI Inc."
 LABEL org.opencontainers.image.title="Hanzo Notify"
 
+COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
+COPY --from=build /usr/share/zoneinfo /usr/share/zoneinfo
+COPY --from=build /etc/passwd /etc/passwd
+COPY --from=build /etc/group /etc/group
 COPY --from=build /out/notifyd /usr/local/bin/notifyd
 
 # /var/lib/notify is the default data dir for the embedded SQLite.
@@ -47,6 +54,6 @@ VOLUME ["/var/lib/notify"]
 ENV PORT=8090
 EXPOSE 8090
 
-USER nonroot:nonroot
+USER 65532:65532
 ENTRYPOINT ["/usr/local/bin/notifyd"]
 CMD ["serve", "--http", "0.0.0.0:8090", "--dir", "/var/lib/notify"]
