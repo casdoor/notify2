@@ -1,23 +1,60 @@
-name: Docker Release
+name: release
+
 on:
   push:
-    branches: [main]
-    tags: ["v*"]
+    tags: ['v*.*.*']
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (defaults to current ref)"
+        required: false
 
 permissions:
   contents: read
   packages: write
-  id-token: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
-  docker:
-    uses: hanzoai/.github/.github/workflows/docker-build.yml@main
-    with:
-      image: ghcr.io/hanzoai/notify
-      # arm64 paused org-wide (DOKS has no arm64 droplets — see hanzo
-      # LLM.md "arm64 paused 2026-04-27"). amd64-only is the canonical
-      # build path; armv8 consumers build from source until DO ships
-      # arm64 instances and `hanzo-build-linux-arm64` ARC is unpaused.
-      platforms: linux/amd64
-    secrets: inherit
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve tag
+        id: ref
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.tag }}" ]; then
+            REF="${{ inputs.tag }}"
+          else
+            REF="${{ github.ref_name }}"
+          fi
+          echo "tag=${REF#v}" >> "$GITHUB_OUTPUT"
+          echo "ref=${REF}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-qemu-action@v3
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          provenance: false
+          sbom: false
+          build-args: |
+            VERSION=${{ steps.ref.outputs.ref }}
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.ref.outputs.ref }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
