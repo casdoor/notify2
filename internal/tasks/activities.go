@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/hanzoai/base"
 	"github.com/hanzoai/base/core"
 
 	"github.com/hanzoai/notify/internal/metering"
@@ -16,13 +15,18 @@ import (
 
 // Activities groups the activity-level side effects so the worker can
 // register a typed receiver and call sites can pass a mock during tests.
+//
+// The app field is the narrow [core.App] interface, not *base.Base — the
+// activity only needs storage methods (FindRecordById / Save) and tests
+// can therefore drive it with a tests.TestApp without booting a full
+// daemon.
 type Activities struct {
-	app      *base.Base
+	app      core.App
 	resolver *tenant.Resolver
 }
 
 // NewActivities returns a fresh Activities bound to the app + resolver.
-func NewActivities(app *base.Base, resolver *tenant.Resolver) *Activities {
+func NewActivities(app core.App, resolver *tenant.Resolver) *Activities {
 	return &Activities{app: app, resolver: resolver}
 }
 

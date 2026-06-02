@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
-	"github.com/hanzoai/base"
 	"github.com/hanzoai/base/apis"
 	"github.com/hanzoai/base/core"
 	"github.com/hanzoai/base/tools/router"
@@ -23,7 +23,7 @@ import (
 // mountSend wires /v1/notify/send (and per-channel convenience paths).
 // The same Send handler powers all four: the path-only difference is
 // the implied channel.
-func mountSend(r *router.Router[*core.RequestEvent], app *base.Base, cfg Config) {
+func mountSend(r *router.Router[*core.RequestEvent], app core.App, cfg Config) {
 	r.POST("/v1/notify/send", sendHandler(app, cfg, ""))
 	r.POST("/v1/notify/send/sms", sendHandler(app, cfg, string(types.ChannelSMS)))
 	r.POST("/v1/notify/send/email", sendHandler(app, cfg, string(types.ChannelEmail)))
@@ -34,7 +34,17 @@ func mountSend(r *router.Router[*core.RequestEvent], app *base.Base, cfg Config)
 // sendHandler returns a handler that processes one POST. The optional
 // pinnedChannel is set on the convenience routes; the unprefixed
 // /v1/notify/send leaves it empty and reads SendRequest.Channel.
-func sendHandler(app *base.Base, cfg Config, pinnedChannel string) func(*core.RequestEvent) error {
+//
+// Mode selection:
+//
+//   - ?sync=true   — block on Deliver, return 200 with the terminal result.
+//   - default      — enqueue via Dispatcher, return 202 with {task_id, message_id}.
+//     The caller polls GET /v1/notify/messages/{id} for the outcome.
+//
+// There is no third mode. Async with a missing/unstarted Dispatcher
+// returns 503 — silently falling back to sync would hide a production
+// misconfiguration (CONTRACT.md §3: workers are mandatory).
+func sendHandler(app core.App, cfg Config, pinnedChannel string) func(*core.RequestEvent) error {
 	return func(e *core.RequestEvent) error {
 		org, err := orgFromRequest(e)
 		if err != nil {
@@ -92,20 +102,33 @@ func sendHandler(app *base.Base, cfg Config, pinnedChannel string) func(*core.Re
 			return apis.NewBadRequestError("body or template_id is required", nil)
 		}
 
+		sync := e.Request.URL.Query().Get("sync") == "true"
+
+		// Async mode is the default but it requires a healthy dispatcher.
+		// Fail closed if it is missing so misconfigured pods are loud.
+		if !sync {
+			if cfg.Dispatcher == nil || !cfg.Dispatcher.Started() {
+				return apis.NewApiError(
+					http.StatusServiceUnavailable,
+					"async dispatch unavailable: hanzoai/tasks worker is not connected — retry shortly or call POST /v1/notify/send?sync=true",
+					nil,
+				)
+			}
+		}
+
 		// Idempotency: if a Message row already exists for the
 		// (tenant, idempotency_key) pair, return it as-is. The schema
 		// has a partial unique index that backs this.
 		if body.IdempotencyKey != "" {
 			if existing, err := findByIdempotency(app, org, body.IdempotencyKey); err == nil && existing != nil {
-				return jsonOK(e, types.SendResponse{
+				resp := types.SendResponse{
 					MessageID: existing.Id,
 					TaskID:    existing.GetString("task_id"),
 					Status:    existing.GetString("status"),
-				})
+				}
+				return writeOne(e, resp, sync)
 			}
 		}
-
-		sync := e.Request.URL.Query().Get("sync") == "true"
 
 		// One Message row per recipient — fan out.
 		ctx := e.Request.Context()
@@ -121,14 +144,32 @@ func sendHandler(app *base.Base, cfg Config, pinnedChannel string) func(*core.Re
 		// Single-recipient sends return a flat object; multi-recipient
 		// returns an array. This keeps the simple case simple.
 		if len(out) == 1 {
-			return jsonOK(e, out[0])
+			return writeOne(e, out[0], sync)
 		}
-		return jsonOK(e, map[string]any{"items": out})
+		return writeMany(e, out, sync)
 	}
 }
 
+// writeOne writes a single SendResponse with the right HTTP status code:
+// 200 for sync, 202 for async (Accepted — the work is enqueued).
+func writeOne(e *core.RequestEvent, resp types.SendResponse, sync bool) error {
+	if sync {
+		return e.JSON(http.StatusOK, resp)
+	}
+	return e.JSON(http.StatusAccepted, resp)
+}
+
+// writeMany mirrors writeOne for the multi-recipient case.
+func writeMany(e *core.RequestEvent, out []types.SendResponse, sync bool) error {
+	body := map[string]any{"items": out}
+	if sync {
+		return e.JSON(http.StatusOK, body)
+	}
+	return e.JSON(http.StatusAccepted, body)
+}
+
 // dispatchOne creates the Message row, then dispatches sync or async.
-func dispatchOne(ctx context.Context, app *base.Base, cfg Config, org string, req types.SendRequest, to, subject, text string, sync bool) (types.SendResponse, error) {
+func dispatchOne(ctx context.Context, app core.App, cfg Config, org string, req types.SendRequest, to, subject, text string, sync bool) (types.SendResponse, error) {
 	rec, err := createMessage(app, org, req, to, subject, text)
 	if err != nil {
 		return types.SendResponse{}, fmt.Errorf("create message: %w", err)
@@ -147,7 +188,7 @@ func dispatchOne(ctx context.Context, app *base.Base, cfg Config, org string, re
 		Vars:       req.TemplateVars,
 	}
 
-	if sync || cfg.Worker == nil || !cfg.Worker.Started() {
+	if sync {
 		// Sync path: call the activity directly. The activity does its
 		// own row updates so the Message reflects the outcome.
 		acts := tasks.NewActivities(app, cfg.Resolver)
@@ -166,8 +207,11 @@ func dispatchOne(ctx context.Context, app *base.Base, cfg Config, org string, re
 		}, nil
 	}
 
-	// Async path: enqueue via tasks.
-	taskID, err := cfg.Worker.Dispatch(ctx, in)
+	// Async path: enqueue via Dispatcher. The caller already verified
+	// cfg.Dispatcher is non-nil and Started, so a Dispatch error here
+	// is a real failure (server unreachable, opcode rejected, …) and
+	// must surface to the client rather than degrade to sync.
+	taskID, err := cfg.Dispatcher.Dispatch(ctx, in)
 	if err != nil {
 		return types.SendResponse{}, fmt.Errorf("dispatch: %w", err)
 	}
@@ -184,7 +228,7 @@ func dispatchOne(ctx context.Context, app *base.Base, cfg Config, org string, re
 
 // createMessage materializes the Message row. The route fan-out path
 // calls this once per recipient.
-func createMessage(app *base.Base, org string, req types.SendRequest, to, subject, body string) (*core.Record, error) {
+func createMessage(app core.App, org string, req types.SendRequest, to, subject, body string) (*core.Record, error) {
 	col, err := app.FindCollectionByNameOrId(schema.Messages)
 	if err != nil {
 		return nil, fmt.Errorf("find collection: %w", err)
@@ -192,9 +236,15 @@ func createMessage(app *base.Base, org string, req types.SendRequest, to, subjec
 	rec := core.NewRecord(col)
 	rec.Set("tenant", org)
 	rec.Set("channel", string(req.Channel))
-	// Provider may be empty here — the activity fills it in once the
-	// resolver picks one.
-	rec.Set("provider", req.Provider)
+	// Provider is required by the schema (we always know who sent the
+	// message in retrospect). When the caller did not pin one, we mark
+	// the row "pending" until the activity resolves an actual provider
+	// and overwrites the field on its first save.
+	provider := req.Provider
+	if provider == "" {
+		provider = "pending"
+	}
+	rec.Set("provider", provider)
 	rec.Set("to", to)
 	rec.Set("subject", subject)
 	rec.Set("body", body)
@@ -210,7 +260,7 @@ func createMessage(app *base.Base, org string, req types.SendRequest, to, subjec
 
 // findByIdempotency returns the existing row for the (tenant, key) pair
 // or nil if no match exists.
-func findByIdempotency(app *base.Base, tenant, key string) (*core.Record, error) {
+func findByIdempotency(app core.App, tenant, key string) (*core.Record, error) {
 	if key == "" {
 		return nil, nil
 	}

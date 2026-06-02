@@ -12,7 +12,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hanzoai/base"
 	"github.com/hanzoai/base/core"
 	"github.com/hanzoai/dbx"
 
@@ -21,7 +20,7 @@ import (
 
 // Resolve loads the enabled event row for (tenant, name) and returns
 // nil (not an error) when no match exists. Empty name short-circuits.
-func Resolve(app *base.Base, tenant, name string) (*core.Record, error) {
+func Resolve(app core.App, tenant, name string) (*core.Record, error) {
 	if tenant == "" {
 		return nil, errors.New("event: tenant is required")
 	}

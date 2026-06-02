@@ -15,6 +15,7 @@ import (
 	"os"
 
 	"github.com/hanzoai/base"
+	"github.com/hanzoai/base/core"
 	"github.com/hanzoai/base/plugins/platform"
 
 	"github.com/hanzoai/notify/internal/boot"
@@ -45,23 +46,54 @@ func main() {
 	resolver := tenant.New(app, kmsClient)
 	activities := tasks.NewActivities(app, resolver)
 
-	// Tasks worker. TASKS_ADDR empty → no async — sync sends still work.
+	// Tasks worker. TASKS_ADDR empty → no async — POST /v1/notify/send
+	// without ?sync=true then returns 503. This is intentional: per
+	// hanzoai/tasks/CONTRACT.md §3, production MUST set TASKS_ADDR; a
+	// silent sync fallback would mask the misconfiguration.
 	var worker *tasks.Worker
 	if addr := os.Getenv("TASKS_ADDR"); addr != "" {
 		w, err := tasks.New(tasks.Config{
-			Address:   addr,
-			Namespace: envOr("TASKS_NAMESPACE", "notify"),
+			Address: addr,
+			// CONTRACT.md §6: namespace = per-tenant org slug. Notify is
+			// multi-tenant in principle but ships with one shared worker
+			// today; per-org namespaces land in the follow-up once the
+			// liquidity tenant traffic scales (tracked: hanzoai/notify#TODO).
+			Namespace: envOr("TASKS_NAMESPACE", "default"),
 			TaskQueue: envOr("TASKS_QUEUE", "notify-send"),
 		}, activities)
 		if err != nil {
 			log.Fatalf("notifyd: worker: %v", err)
 		}
 		worker = w
+
+		// Lifecycle: Start at serve time (after migrations), Stop at
+		// terminate. Failure to start is non-fatal so reads / sync sends
+		// keep working; async sends then return 503 until tasksd is back.
+		app.OnServe().BindFunc(func(e *core.ServeEvent) error {
+			if err := worker.Start(); err != nil {
+				app.Logger().Warn("notifyd: worker start failed; async sends will 503",
+					"err", err)
+			}
+			return e.Next()
+		})
+		app.OnTerminate().BindFunc(func(e *core.TerminateEvent) error {
+			worker.Stop()
+			return e.Next()
+		})
+	}
+
+	// dispatcher is the typed interface routes/send.go reads. Passing a
+	// (*tasks.Worker)(nil) into an interface field is NOT the same as a
+	// nil interface — guard against the typed-nil trap explicitly so the
+	// route's `cfg.Dispatcher == nil` check works as intended.
+	var dispatcher tasks.Dispatcher
+	if worker != nil {
+		dispatcher = worker
 	}
 
 	routes.MustRegister(app, routes.Config{
-		Resolver: resolver,
-		Worker:   worker,
+		Resolver:   resolver,
+		Dispatcher: dispatcher,
 	})
 
 	if err := app.Start(); err != nil {
