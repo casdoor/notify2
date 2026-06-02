@@ -28,7 +28,11 @@ RUN go build \
       ./cmd/notifyd
 
 # ─── runtime stage ─────────────────────────────────────────────────────
-FROM gcr.io/distroless/static-debian12:nonroot
+# Distroless mirrored to GHCR. Source: gcr.io/distroless/static-debian12:nonroot
+# (bit-identical, crane copy). Self-hosted runners can't reach gcr.io
+# reliably; ghcr.io is the registry the build is already authenticated
+# against (docker/login-action upstream of this FROM).
+FROM ghcr.io/hanzoai/distroless-static:nonroot
 LABEL service=notify
 LABEL org.opencontainers.image.source="https://github.com/hanzoai/notify"
 LABEL org.opencontainers.image.vendor="Hanzo AI Inc."
