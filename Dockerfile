@@ -25,12 +25,26 @@ WORKDIR /src
 ENV GOPROXY=direct
 ENV GOSUMDB=off
 
+# Private hanzoai/* + luxfi/* modules need authenticated git over HTTPS.
+# We map the build-secret `github_token` into a one-shot `git config`
+# entry that rewrites every github.com URL to x-access-token://… form
+# the token authenticates against. The secret is mount-only — never
+# baked into a layer.
+ENV GOPRIVATE=github.com/hanzoai/*,github.com/luxfi/*,github.com/liquidityio/*
+
 RUN groupadd -g 65532 nonroot && \
     useradd  -u 65532 -g 65532 -M -s /usr/sbin/nologin nonroot
 
-# Cache the module graph first.
+# Cache the module graph first. The `--mount=type=secret` is no-op
+# when the build is invoked without the secret (public-mod fallback);
+# when the secret IS supplied, we register a token-aware insteadOf so
+# every `git clone https://github.com/<priv>` resolves with auth.
 COPY go.mod go.sum ./
-RUN go mod download
+RUN --mount=type=secret,id=github_token,target=/run/secrets/github_token \
+    sh -c 'if [ -s /run/secrets/github_token ]; then \
+             git config --global url."https://x-access-token:$(cat /run/secrets/github_token)@github.com/".insteadOf "https://github.com/"; \
+           fi && \
+           go mod download'
 
 COPY . .
 
