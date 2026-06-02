@@ -13,12 +13,16 @@
 FROM golang:1.26.3 AS build
 WORKDIR /src
 
-# GOPROXY mirror chain — proxy.golang.org sits in Google network space
-# (142.251.x.x) which the hanzo home-lab runner cannot reach reliably.
-# goproxy.cn is the upstream-recommended public mirror; falling back
-# to `direct` keeps private modules (github.com/...) working without
-# round-tripping through any proxy.
-ENV GOPROXY=https://goproxy.cn,direct
+# GOPROXY=direct: every hanzo/lux/zoo module lives on github.com,
+# which the runner reaches fine. proxy.golang.org (Google IP 142.251.x.x)
+# isn't reachable from the home-lab runners, but it's also unnecessary —
+# `direct` clones each module straight from its source repo. No external
+# proxy, no caching layer to debug.
+#
+# GOSUMDB=off because sum.golang.org sits in the same Google IP range.
+# Module integrity comes from go.sum (checked into the repo) and direct
+# git verification of the cloned source.
+ENV GOPROXY=direct
 ENV GOSUMDB=off
 
 RUN groupadd -g 65532 nonroot && \
