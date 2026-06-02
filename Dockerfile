@@ -12,6 +12,15 @@
 # at the FROM scratch hand-off so the final image is unaffected).
 FROM golang:1.26.3 AS build
 WORKDIR /src
+
+# GOPROXY mirror chain — proxy.golang.org sits in Google network space
+# (142.251.x.x) which the hanzo home-lab runner cannot reach reliably.
+# goproxy.cn is the upstream-recommended public mirror; falling back
+# to `direct` keeps private modules (github.com/...) working without
+# round-tripping through any proxy.
+ENV GOPROXY=https://goproxy.cn,direct
+ENV GOSUMDB=off
+
 RUN groupadd -g 65532 nonroot && \
     useradd  -u 65532 -g 65532 -M -s /usr/sbin/nologin nonroot
 
