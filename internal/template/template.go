@@ -36,7 +36,7 @@ type Resolved struct {
 // LoadPublished fetches the latest published version of (tenant, name).
 // Returns a "not found" error when no row matches; the routes layer
 // maps that to HTTP 404.
-func LoadPublished(app *base.Base, tenant, idOrName string) (*core.Record, error) {
+func LoadPublished(app core.App, tenant, idOrName string) (*core.Record, error) {
 	if tenant == "" || idOrName == "" {
 		return nil, errors.New("template: tenant and id are required")
 	}

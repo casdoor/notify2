@@ -16,7 +16,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/hanzoai/base"
 	"github.com/hanzoai/base/core"
 	"github.com/hanzoai/dbx"
 
@@ -40,7 +39,7 @@ type Record struct {
 // Write inserts one meter row. Returns the persisted record id or an
 // error. Idempotency must be handled at the caller layer — the meter
 // is append-only and does not dedup.
-func Write(app *base.Base, rec Record) (string, error) {
+func Write(app core.App, rec Record) (string, error) {
 	if rec.TenantSlug == "" || rec.Provider == "" || rec.Channel == "" {
 		return "", errors.New("metering: tenant, provider, channel are required")
 	}
@@ -85,7 +84,7 @@ type ProviderRoll struct {
 // loads up to maxRows records — callers that need windowed billing
 // should pass a tight (from,to) and a high cap; the daily-rollup job
 // uses streaming reads via the underlying dbx connection directly.
-func Aggregate(app *base.Base, tenant, from, to string, maxRows int) (*Summary, error) {
+func Aggregate(app core.App, tenant, from, to string, maxRows int) (*Summary, error) {
 	if tenant == "" {
 		return nil, errors.New("metering: tenant is required")
 	}

@@ -34,6 +34,20 @@ type Config struct {
 	TaskQueue string
 }
 
+// Dispatcher is the narrow surface the HTTP routes need to enqueue an
+// async send. *Worker satisfies it; tests pass an in-memory stub so the
+// send handler can be exercised without dialing tasksd.
+type Dispatcher interface {
+	// Dispatch enqueues a NotifySendWorkflow execution and returns the
+	// task id. Implementations must return a non-empty id on success.
+	Dispatch(ctx context.Context, req SendInput) (string, error)
+
+	// Started reports whether the dispatcher is ready to accept work.
+	// Routes use this to fail-closed (503) when async is requested
+	// against an unstarted worker.
+	Started() bool
+}
+
 // Worker owns the tasks client + worker lifecycle. Mirrors auto's
 // engine.Worker (we deliberately copy the shape because they're siblings).
 type Worker struct {
@@ -59,7 +73,11 @@ func New(cfg Config, acts *Activities) (*Worker, error) {
 		return nil, errors.New("tasks: Activities is required")
 	}
 	if cfg.Namespace == "" {
-		cfg.Namespace = "notify"
+		// CONTRACT.md §6: single-tenant services run under "default" until
+		// they serve a second tenant. Notify is multi-tenant in principle
+		// but ships with one shared queue today; per-org namespaces land
+		// in the follow-up tracked at hanzoai/notify#TODO.
+		cfg.Namespace = "default"
 	}
 	if cfg.TaskQueue == "" {
 		cfg.TaskQueue = "notify-send"

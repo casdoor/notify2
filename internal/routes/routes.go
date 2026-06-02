@@ -22,9 +22,11 @@ type Config struct {
 	// Resolver constructs per-tenant Notifier instances on demand.
 	Resolver *tenant.Resolver
 
-	// Worker is the durable-execution worker. Nil disables async mode
-	// (every send becomes sync). Useful for local-dev / scratch images.
-	Worker *tasks.Worker
+	// Dispatcher enqueues async sends. Nil means async dispatch is not
+	// available; POST /v1/notify/send without ?sync=true then returns
+	// 503. The binary owns the worker's Start/Stop lifecycle; this
+	// package only reads the dispatch surface.
+	Dispatcher tasks.Dispatcher
 }
 
 // MustRegister installs the notify API on app's OnServe hook. The hook
@@ -35,15 +37,6 @@ func MustRegister(app *base.Base, cfg Config) {
 	}
 
 	app.OnServe().BindFunc(func(e *core.ServeEvent) error {
-		// Start the worker — failure degrades async sends but the rest
-		// of the API stays up so messages and metering remain queryable.
-		if cfg.Worker != nil {
-			if err := cfg.Worker.Start(); err != nil {
-				app.Logger().Warn("notify: worker start failed; async sends disabled",
-					"err", err)
-			}
-		}
-
 		mountHealth(e.Router)
 		mountSend(e.Router, app, cfg)
 		mountMessages(e.Router, app)
@@ -52,13 +45,6 @@ func MustRegister(app *base.Base, cfg Config) {
 		mountEvents(e.Router, app)
 		mountMetering(e.Router, app)
 		mountTenants(e.Router, app)
-		return e.Next()
-	})
-
-	app.OnTerminate().BindFunc(func(e *core.TerminateEvent) error {
-		if cfg.Worker != nil {
-			cfg.Worker.Stop()
-		}
 		return e.Next()
 	})
 }

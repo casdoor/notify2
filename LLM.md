@@ -60,13 +60,36 @@ provider needs. See `internal/tenant/tenant.go::credKeysForService`.
 
 ## Send modes
 
-- **Async (default)** — POST returns immediately with `task_id`; a
-  hanzoai/tasks worker picks up the `notify.send` workflow and runs
-  the same Deliver activity that powers sync.
+- **Async (default)** — POST returns **202 Accepted** with
+  `{message_id, task_id, status:"queued"}`; a hanzoai/tasks worker
+  picks up the `NotifySendWorkflow` and runs the same `Deliver`
+  activity that powers sync.
 - **Sync (`?sync=true`)** — handler runs the activity inline and blocks
-  on the provider's response.
+  on the provider's response. Returns **200 OK** with the terminal
+  `{message_id, status, error?}` shape.
 - **Scheduled (`?send_at=<rfc3339>`)** — wire reserved; lands once
   the tasks scheduler API has the matching client surface.
+
+Async fails closed: if the `tasks.Dispatcher` is not configured
+(`TASKS_ADDR` empty) or not yet started (tasksd unreachable), the
+default async path returns **503 Service Unavailable** with a hint to
+retry shortly or call `?sync=true`. There is intentionally no silent
+sync fallback — per hanzoai/tasks CONTRACT.md §3, production MUST set
+`TASKS_ADDR`.
+
+## hanzoai/tasks wiring
+
+- Namespace: `default` (single shared worker for all tenants in this
+  PR — per-org namespacing per CONTRACT.md §6 is the next step once
+  the `liquidity` tenant traffic scales).
+- Task queue: `notify-send`.
+- Workflow: `NotifySendWorkflow` (`internal/tasks/workflow.go`).
+- Activity: `Deliver` — idempotent on the message row's terminal
+  states (`sent` / `failed`), so tasks-server replays do not re-fire
+  the provider.
+- Worker lifecycle (Start/Stop) is owned by `cmd/notifyd`; the
+  `internal/routes` package only consumes the `tasks.Dispatcher`
+  interface.
 
 ## Schema invariants
 
@@ -86,7 +109,8 @@ TASKS_ADDR="" KMS_ENDPOINT="" /tmp/notifyd serve --http 0.0.0.0:8090 --dir /var/
 ```
 
 `KMS_ENDPOINT=""` runs in env-var credentials mode (local dev).
-`TASKS_ADDR=""` disables async — sync sends still work.
+`TASKS_ADDR=""` disables async — only `?sync=true` works; the default
+async path returns 503 until `TASKS_ADDR` is set.
 
 ## Tags / versioning
 

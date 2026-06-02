@@ -20,7 +20,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hanzoai/base"
 	"github.com/hanzoai/base/core"
 	"github.com/hanzoai/base/plugins/platform"
 	"github.com/hanzoai/dbx"
@@ -36,14 +35,14 @@ import (
 // (to look up provider rows) and the platform-side KMS facade
 // (to fetch credentials).
 type Resolver struct {
-	app *base.Base
+	app core.App
 	kms *platform.KMSClient
 }
 
 // New returns a Resolver bound to the given app + KMS client. A nil
 // KMS client is allowed; in that mode the resolver falls back to env
 // var credentials, which is the local-dev / scratch-image path.
-func New(app *base.Base, kms *platform.KMSClient) *Resolver {
+func New(app core.App, kms *platform.KMSClient) *Resolver {
 	return &Resolver{app: app, kms: kms}
 }
 
