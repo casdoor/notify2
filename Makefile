@@ -62,5 +62,23 @@ ci: lint test
 .PHONY: ci
 
 ###############################################################################
+# KMS BOOTSTRAP
+###############################################################################
+
+# seed-plivo prompts for the Liquidity Plivo credentials and writes them
+# to kms.hanzo.ai under brand/liquidity/plivo. This is the fleet default
+# every brand falls back to until it sets its own override in the
+# platform UI. Never commit the values — they live ONLY in KMS.
+#
+#   KMS_ENDPOINT (required) — e.g. https://kms.hanzo.ai
+#   IAM_ENDPOINT (required) — e.g. https://hanzo.id
+#   IAM_CLIENT_ID + IAM_CLIENT_SECRET — service account for the seed run
+#
+# Run once at install (or whenever Liquidity rotates its Plivo).
+seed-plivo:
+	@./scripts/seed-plivo.sh
+.PHONY: seed-plivo
+
+###############################################################################
 
 .DEFAULT_GOAL := ci

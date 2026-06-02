@@ -34,9 +34,14 @@ type Resolved struct {
 }
 
 // LoadPublished fetches the latest published version of (tenant, name).
+// When channel is non-empty, a channel-scoped row is preferred and the
+// channel-agnostic fallback only fires if no channel match exists. This
+// keeps a tenant from having to maintain disjoint template names per
+// channel — one name + one row per (channel) is enough.
+//
 // Returns a "not found" error when no row matches; the routes layer
-// maps that to HTTP 404.
-func LoadPublished(app core.App, tenant, idOrName string) (*core.Record, error) {
+// maps that to HTTP 400.
+func LoadPublished(app core.App, tenant, idOrName, channel string) (*core.Record, error) {
 	if tenant == "" || idOrName == "" {
 		return nil, errors.New("template: tenant and id are required")
 	}
@@ -46,6 +51,27 @@ func LoadPublished(app core.App, tenant, idOrName string) (*core.Record, error) 
 		rec.GetString("tenant") == tenant &&
 		rec.GetString("status") == schema.TemplateStatusPublished {
 		return rec, nil
+	}
+	// Prefer (tenant, name, channel, status=published) when channel is known.
+	if channel != "" {
+		rows, err := app.FindRecordsByFilter(
+			schema.Templates,
+			"tenant = {:tenant} && name = {:name} && channel = {:channel} && status = {:status}",
+			"-version",
+			1, 0,
+			dbx.Params{
+				"tenant":  tenant,
+				"name":    idOrName,
+				"channel": channel,
+				"status":  schema.TemplateStatusPublished,
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("template: lookup: %w", err)
+		}
+		if len(rows) > 0 {
+			return rows[0], nil
+		}
 	}
 	rows, err := app.FindRecordsByFilter(
 		schema.Templates,
@@ -62,6 +88,9 @@ func LoadPublished(app core.App, tenant, idOrName string) (*core.Record, error) 
 		return nil, fmt.Errorf("template: lookup: %w", err)
 	}
 	if len(rows) == 0 {
+		if channel != "" {
+			return nil, fmt.Errorf("template: no published template %q (channel=%s) for tenant %s", idOrName, channel, tenant)
+		}
 		return nil, fmt.Errorf("template: no published template %q for tenant %s", idOrName, tenant)
 	}
 	return rows[0], nil

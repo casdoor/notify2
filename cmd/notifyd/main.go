@@ -44,6 +44,19 @@ func main() {
 	// falls back to env-var credentials, which is the local-dev path.
 	kmsClient := boot.NewKMSClient()
 	resolver := tenant.New(app, kmsClient)
+	// Multi-brand Plivo resolver. Only constructed when KMS is wired —
+	// the per-brand fallback to the Liquidity default depends on KMS
+	// reads. Nil here means the /v1/notify/brand/plivo* surface returns
+	// 503 (the routes guard for this) which is the right local-dev
+	// behaviour.
+	var plivoResolver *tenant.PlivoResolver
+	if kmsClient != nil {
+		if pr, err := tenant.NewPlivoResolver(kmsClient); err != nil {
+			log.Fatalf("notifyd: plivo resolver: %v", err)
+		} else {
+			plivoResolver = pr
+		}
+	}
 	activities := tasks.NewActivities(app, resolver)
 
 	// Tasks worker. TASKS_ADDR empty → no async — POST /v1/notify/send
@@ -92,8 +105,10 @@ func main() {
 	}
 
 	routes.MustRegister(app, routes.Config{
-		Resolver:   resolver,
-		Dispatcher: dispatcher,
+		Resolver:      resolver,
+		Dispatcher:    dispatcher,
+		KMSClient:     kmsClient,
+		PlivoResolver: plivoResolver,
 	})
 
 	if err := app.Start(); err != nil {

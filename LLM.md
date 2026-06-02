@@ -42,6 +42,10 @@ and follows the `hanzoai/auto` layout exactly — same `hanzoai/base` +
 | POST   | `/templates` + `/{id}/{submit,approve,publish,archive}` | routes/templates.go  |
 | GET    | `/events`, POST `/events`         | routes/events.go     |
 | GET    | `/metering?from=&to=`             | routes/metering.go   |
+| GET    | `/brand/plivo`                    | routes/brand_plivo.go (metadata only — no secrets) |
+| PUT    | `/brand/plivo`                    | routes/brand_plivo.go (writes KMS) |
+| DELETE | `/brand/plivo`                    | routes/brand_plivo.go (clears KMS — falls back to default) |
+| POST   | `/brand/plivo/test`               | routes/brand_plivo.go (probe SMS via resolved creds) |
 
 Tenant scope: every route reads `X-Org-Id` from the platform plugin
 (populated from JWT `owner` claim). Cross-tenant access is impossible
@@ -50,13 +54,30 @@ at the SQL filter level.
 ## Provider credentials — KMS layout
 
 ```
-shared/{service}/{key}                 # Hanzo subaccount (e.g. shared/plivo/auth-id)
-tenants/{slug}/{service}/{key}         # BYO per tenant
+shared/{service}/{key}                 # Hanzo subaccount (legacy DB-row path)
+tenants/{slug}/{service}/{key}         # BYO per tenant (DB-row path)
+brand/{slug}/plivo/{auth-id,…}         # multi-brand Plivo override
+brand/liquidity/plivo/{auth-id,…}      # fleet default (fail-closed if missing)
 ```
 
-The `providers` collection row's `kms_path` is the directory
-prefix; the resolver appends `/<key>` for each credential field the
-provider needs. See `internal/tenant/tenant.go::credKeysForService`.
+Two resolution paths:
+
+1. **DB-row resolver** (`internal/tenant/tenant.go`) — looks up a row
+   in the `providers` collection scoped to X-Org-Id, reads
+   `kms_path`, appends the field name, fetches each value from KMS.
+   Used by every provider that isn't Plivo.
+
+2. **Brand resolver** (`internal/tenant/plivo_resolver.go`) — used
+   ONLY for Plivo. Reads `brand/<slug>/plivo/*` directly; on miss,
+   falls back to `brand/liquidity/plivo/*`. Fail-closed if the
+   Liquidity default is missing — no hard-coded fallback. Surfaces
+   via `/v1/notify/brand/plivo*` endpoints for the platform UI.
+
+Why two paths: every Hanzo brand (hanzo, lux, zoo, pars, liquidity)
+sends OTPs through Plivo by default, so making each brand seed a
+`providers` row for that is needless ceremony. The brand resolver
+defaults to the Liquidity fleet account; brand admins promote to
+their own Plivo via the platform UI ("SMS/Email Provider Override").
 
 ## Send modes
 

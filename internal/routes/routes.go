@@ -12,6 +12,7 @@ import (
 
 	"github.com/hanzoai/base"
 	"github.com/hanzoai/base/core"
+	"github.com/hanzoai/base/plugins/platform"
 
 	"github.com/hanzoai/notify/internal/tasks"
 	"github.com/hanzoai/notify/internal/tenant"
@@ -27,6 +28,16 @@ type Config struct {
 	// 503. The binary owns the worker's Start/Stop lifecycle; this
 	// package only reads the dispatch surface.
 	Dispatcher tasks.Dispatcher
+
+	// KMSClient is the KMS facade. Required by the brand override
+	// endpoints (/v1/notify/brand/plivo*). Nil → those endpoints return
+	// 503 (local-dev path).
+	KMSClient *platform.KMSClient
+
+	// PlivoResolver handles per-brand Plivo credential resolution with
+	// fallback to the Liquidity default. Nil → /v1/notify/brand/plivo*
+	// returns 503.
+	PlivoResolver *tenant.PlivoResolver
 }
 
 // MustRegister installs the notify API on app's OnServe hook. The hook
@@ -45,6 +56,7 @@ func MustRegister(app *base.Base, cfg Config) {
 		mountEvents(e.Router, app)
 		mountMetering(e.Router, app)
 		mountTenants(e.Router, app)
+		MountBrandPlivo(e.Router, app, cfg.KMSClient, cfg.PlivoResolver)
 		return e.Next()
 	})
 }

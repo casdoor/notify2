@@ -84,7 +84,7 @@ func sendHandler(app core.App, cfg Config, pinnedChannel string) func(*core.Requ
 		subject := body.Subject
 		text := body.Body
 		if body.TemplateID != "" {
-			tmpl, err := template.LoadPublished(app, org, body.TemplateID)
+			tmpl, err := template.LoadPublished(app, org, body.TemplateID, string(body.Channel))
 			if err != nil {
 				return apis.NewBadRequestError(err.Error(), nil)
 			}
@@ -229,6 +229,13 @@ func dispatchOne(ctx context.Context, app core.App, cfg Config, org string, req 
 // createMessage materializes the Message row. The route fan-out path
 // calls this once per recipient.
 func createMessage(app core.App, org string, req types.SendRequest, to, subject, body string) (*core.Record, error) {
+	// The Messages collection has a RelationField → Tenants and the
+	// relation will fail validation if the tenant row does not yet exist.
+	// Autocreate one for first-use of an org so production callers never
+	// have to POST /v1/notify/tenants before their first send. Idempotent.
+	if err := ensureTenantRow(app, org); err != nil {
+		return nil, fmt.Errorf("ensure tenant row: %w", err)
+	}
 	col, err := app.FindCollectionByNameOrId(schema.Messages)
 	if err != nil {
 		return nil, fmt.Errorf("find collection: %w", err)
@@ -256,6 +263,25 @@ func createMessage(app core.App, org string, req types.SendRequest, to, subject,
 		return nil, fmt.Errorf("save: %w", err)
 	}
 	return rec, nil
+}
+
+// ensureTenantRow upserts a `tenants` row whose primary key is the IAM
+// org slug. Called from createMessage so the first send for any new org
+// silently auto-provisions the relation target rather than 500'ing on
+// validation_missing_rel_records. The display name defaults to the slug
+// — callers can rename later via POST /v1/notify/tenants.
+func ensureTenantRow(app core.App, org string) error {
+	if rec, _ := app.FindRecordById(schema.Tenants, org); rec != nil {
+		return nil
+	}
+	col, err := app.FindCollectionByNameOrId(schema.Tenants)
+	if err != nil {
+		return err
+	}
+	rec := core.NewRecord(col)
+	rec.Set("id", org)
+	rec.Set("name", org)
+	return app.Save(rec)
 }
 
 // findByIdempotency returns the existing row for the (tenant, key) pair
