@@ -51,6 +51,7 @@ func MustRegister(app *base.Base, cfg Config) {
 		mountTemplates(e.Router, app)
 		mountEvents(e.Router, app)
 		mountMetering(e.Router, app)
+		mountTenants(e.Router, app)
 		return e.Next()
 	})
 

@@ -131,6 +131,17 @@ type Provider struct {
 	LastTestResult string `json:"last_test_result,omitempty"`
 }
 
+// Tenant is the namespace row every other notify table relates to. The
+// id is the IAM org slug (e.g. "liquidity"), enforced as a kebab-case
+// PRIMARY KEY by the schema migration. One row per organisation. No
+// soft-delete; CascadeDelete on the relation cleans up dependents.
+type Tenant struct {
+	ID      string `json:"id"`
+	Name    string `json:"name"`
+	Created string `json:"created"`
+	Updated string `json:"updated"`
+}
+
 // Template is a re-usable message body keyed by tenant + canonical id.
 // Lifecycle: draft → pending_approval → approved → published → archived.
 // Lifted from the BD just-shipped design (liquidityio/bd#105).
