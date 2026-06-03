@@ -203,8 +203,11 @@ func dispatchOne(ctx context.Context, app core.App, cfg Config, org string, req 
 
 	if sync {
 		// Sync path: call the activity directly. The activity does its
-		// own row updates so the Message reflects the outcome.
-		acts := tasks.NewActivities(app, cfg.Resolver)
+		// own row updates so the Message reflects the outcome. When
+		// the chain resolver is wired we build an activity that
+		// prefers the per-channel chain over the single-provider
+		// resolver — same code path the async worker uses.
+		acts := tasks.NewActivitiesWithChain(app, cfg.Resolver, cfg.ChainResolver)
 		result, err := acts.Deliver(ctx, in)
 		if err != nil {
 			return types.SendResponse{

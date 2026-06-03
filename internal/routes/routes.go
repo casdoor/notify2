@@ -20,8 +20,16 @@ import (
 
 // Config wires the routes module to its collaborators.
 type Config struct {
-	// Resolver constructs per-tenant Notifier instances on demand.
+	// Resolver constructs per-tenant Notifier instances on demand —
+	// the single-provider, pin-an-id path. Kept alive for ?provider=
+	// requests and as the local-dev fallback when KMS is unwired.
 	Resolver *tenant.Resolver
+
+	// ChainResolver constructs the per-channel multi-provider chain
+	// (primary → fallback1 → fallback2). When non-nil and the caller
+	// did NOT pin a provider, the sync handler runs through the chain
+	// and records the per-attempt trace on the message row.
+	ChainResolver *tenant.ChainResolver
 
 	// Dispatcher enqueues async sends. Nil means async dispatch is not
 	// available; POST /v1/notify/send without ?sync=true then returns
