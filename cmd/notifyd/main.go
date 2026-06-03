@@ -57,7 +57,21 @@ func main() {
 			plivoResolver = pr
 		}
 	}
-	activities := tasks.NewActivities(app, resolver)
+	// Multi-provider chain resolver. KMS-only — every chain provider
+	// (Plivo, Twilio, SES, SendGrid) MUST be brand-scoped at runtime,
+	// so we never construct it from env vars. When KMS is absent we
+	// ship without the chain and Activities falls back to the single-
+	// provider tenant.Resolver path (env creds, useful only for local
+	// dev).
+	var chainResolver *tenant.ChainResolver
+	if kmsClient != nil {
+		if cr, err := tenant.NewChainResolver(kmsClient); err != nil {
+			log.Fatalf("notifyd: chain resolver: %v", err)
+		} else {
+			chainResolver = cr
+		}
+	}
+	activities := tasks.NewActivitiesWithChain(app, resolver, chainResolver)
 
 	// Tasks worker. TASKS_ADDR empty → no async — POST /v1/notify/send
 	// without ?sync=true then returns 503. This is intentional: per
@@ -106,6 +120,7 @@ func main() {
 
 	routes.MustRegister(app, routes.Config{
 		Resolver:      resolver,
+		ChainResolver: chainResolver,
 		Dispatcher:    dispatcher,
 		KMSClient:     kmsClient,
 		PlivoResolver: plivoResolver,

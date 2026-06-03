@@ -54,30 +54,52 @@ at the SQL filter level.
 ## Provider credentials — KMS layout
 
 ```
-shared/{service}/{key}                 # Hanzo subaccount (legacy DB-row path)
-tenants/{slug}/{service}/{key}         # BYO per tenant (DB-row path)
-brand/{slug}/plivo/{auth-id,…}         # multi-brand Plivo override
-brand/liquidity/plivo/{auth-id,…}      # fleet default (fail-closed if missing)
+shared/{service}/{key}                            # Hanzo subaccount (legacy DB-row path)
+tenants/{slug}/{service}/{key}                    # BYO per tenant (DB-row path)
+brand/{slug}/{provider}/{key-kebab}               # per-brand chain provider creds
+brand/liquidity/{provider}/{key-kebab}            # fleet default (fail-closed if missing)
+brand/{slug}/notify-chain/{channel}               # JSON array of provider ids — per-channel order override
 ```
 
-Two resolution paths:
+Three resolution paths:
 
 1. **DB-row resolver** (`internal/tenant/tenant.go`) — looks up a row
    in the `providers` collection scoped to X-Org-Id, reads
    `kms_path`, appends the field name, fetches each value from KMS.
-   Used by every provider that isn't Plivo.
+   Used by the legacy single-provider `?provider=...` pinning path.
 
 2. **Brand resolver** (`internal/tenant/plivo_resolver.go`) — used
-   ONLY for Plivo. Reads `brand/<slug>/plivo/*` directly; on miss,
-   falls back to `brand/liquidity/plivo/*`. Fail-closed if the
-   Liquidity default is missing — no hard-coded fallback. Surfaces
-   via `/v1/notify/brand/plivo*` endpoints for the platform UI.
+   ONLY for the `/v1/notify/brand/plivo*` endpoints (platform UI's
+   "current effective Plivo" indicator). Reads `brand/<slug>/plivo/*`
+   directly; on miss falls back to `brand/liquidity/plivo/*`.
+   Fail-closed if the Liquidity default is missing — no hard-coded
+   fallback.
 
-Why two paths: every Hanzo brand (hanzo, lux, zoo, pars, liquidity)
-sends OTPs through Plivo by default, so making each brand seed a
-`providers` row for that is needless ceremony. The brand resolver
-defaults to the Liquidity fleet account; brand admins promote to
-their own Plivo via the platform UI ("SMS/Email Provider Override").
+3. **Chain resolver** (`internal/tenant/chain.go`) — default send
+   path. Builds a per-(brand, channel) ordered provider chain
+   (primary → fallback1 → fallback2). The order comes from KMS at
+   `brand/<slug>/notify-chain/<channel>` (JSON array of provider ids);
+   absent → `DefaultChainFor(channel)`:
+
+       sms             → plivo, twilio
+       email_txn       → ses_api, ses_smtp
+       email_otp       → ses_smtp, ses_api
+       email_marketing → sendgrid, ses_api
+
+   Each provider's credentials are read from
+   `brand/<slug>/<provider>/<key-kebab>` with brand→liquidity
+   fallback on missing fields. Per-attempt deadline 10s, whole-chain
+   ceiling 30s. Errors are classified terminal (4xx, invalid
+   recipient, blocklist) or retryable (5xx, transport, timeout);
+   terminal stops the chain, retryable advances to the next provider.
+   The chosen provider id is stored on the message row's `provider`
+   field and the per-attempt trace lands in `messages.metadata`.
+
+Why three paths: caller-pinned (path 1) lets the platform UI probe
+exactly one provider; brand-Plivo UI (path 2) is a metadata surface
+for ops; chain (path 3) is the production send path. The chain
+defaults match the legacy "Plivo for SMS, SES for email" behavior
+but add automatic failover when the primary is down.
 
 ## Send modes
 

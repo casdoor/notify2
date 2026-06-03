@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -20,14 +21,32 @@ import (
 // activity only needs storage methods (FindRecordById / Save) and tests
 // can therefore drive it with a tests.TestApp without booting a full
 // daemon.
+//
+// Two resolvers, one decision: when a chainResolver is wired and the
+// caller did NOT pin a specific provider (in.Provider == ""), Deliver
+// uses the per-channel chain (Plivo→Twilio, SES API→SES SMTP, …). When
+// either the chain resolver is absent OR the caller pinned a provider
+// id, Deliver falls back to the single-provider tenant.Resolver — that
+// keeps the legacy "force this exact provider" path working for tests
+// and the platform UI's manual probes.
 type Activities struct {
-	app      core.App
-	resolver *tenant.Resolver
+	app           core.App
+	resolver      *tenant.Resolver
+	chainResolver *tenant.ChainResolver
 }
 
 // NewActivities returns a fresh Activities bound to the app + resolver.
+// chain may be nil — single-provider behavior is preserved.
 func NewActivities(app core.App, resolver *tenant.Resolver) *Activities {
 	return &Activities{app: app, resolver: resolver}
+}
+
+// NewActivitiesWithChain returns an Activities that uses chain when the
+// caller did not pin a provider id, and falls back to resolver
+// otherwise. Either chain or resolver may be nil; at least one must be
+// non-nil for sends to succeed.
+func NewActivitiesWithChain(app core.App, resolver *tenant.Resolver, chain *tenant.ChainResolver) *Activities {
+	return &Activities{app: app, resolver: resolver, chainResolver: chain}
 }
 
 // Deliver is the only activity. It does five things in order:
@@ -65,12 +84,18 @@ func (a *Activities) Deliver(ctx context.Context, in SendInput) (SendResult, err
 		return SendResult{}, fmt.Errorf("activities: mark sending: %w", err)
 	}
 
-	notifier, service, err := a.resolver.Resolve(ctx, in.TenantSlug, in.Channel, in.Provider, []string{in.To})
-	if err != nil {
-		return a.fail(rec, in, "", fmt.Errorf("resolve: %w", err))
+	service, runResult, sendErr := a.send(ctx, in)
+	if runResult != nil {
+		// Persist the per-attempt trace on the row for forensics.
+		// Failure-mode telemetry is the primary use case; success is
+		// recorded too so a dashboard can show "Plivo failed twice
+		// before Twilio won" without re-resolving the chain.
+		if blob, mErr := json.Marshal(runResult); mErr == nil {
+			rec.Set("metadata", string(blob))
+		}
 	}
-	if err := notifier.Send(ctx, in.Subject, in.Body); err != nil {
-		return a.fail(rec, in, service, err)
+	if sendErr != nil {
+		return a.fail(rec, in, service, sendErr)
 	}
 
 	// Mark sent.
@@ -108,6 +133,42 @@ func (a *Activities) Deliver(ctx context.Context, in SendInput) (SendResult, err
 		Status:    schema.MessageStatusSent,
 		Provider:  service,
 	}, nil
+}
+
+// send picks between the single-provider resolver and the multi-
+// provider chain. Decision matrix:
+//
+//   in.Provider != ""           → single-provider (caller pinned)
+//   chainResolver == nil        → single-provider (no chain wired)
+//   otherwise                    → chain
+//
+// Returns the provider id that actually sent (winner), the optional
+// chain-run result (nil on single-provider path), and the terminal
+// error (nil on success).
+func (a *Activities) send(ctx context.Context, in SendInput) (string, *tenant.RunResult, error) {
+	if in.Provider != "" || a.chainResolver == nil {
+		if a.resolver == nil {
+			return "", nil, fmt.Errorf("activities: no resolver configured (single-provider path requires tenant.Resolver)")
+		}
+		notifier, service, err := a.resolver.Resolve(ctx, in.TenantSlug, in.Channel, in.Provider, []string{in.To})
+		if err != nil {
+			return "", nil, fmt.Errorf("resolve: %w", err)
+		}
+		if err := notifier.Send(ctx, in.Subject, in.Body); err != nil {
+			return service, nil, err
+		}
+		return service, nil, nil
+	}
+
+	chain, err := a.chainResolver.Resolve(ctx, in.TenantSlug, tenant.ChainChannel(in.Channel))
+	if err != nil {
+		return "", nil, fmt.Errorf("chain resolve: %w", err)
+	}
+	result, runErr := chain.Run(ctx, in.To, in.Subject, in.Body)
+	if runErr != nil {
+		return result.Winner, &result, runErr
+	}
+	return result.Winner, &result, nil
 }
 
 // fail records the failure on the message row and returns the matching
