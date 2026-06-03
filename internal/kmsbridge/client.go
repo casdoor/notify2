@@ -1,24 +1,16 @@
 // Package kmsbridge is notify's direct line to Hanzo KMS.
 //
-// Why this exists separately from `github.com/hanzoai/base/plugins/platform`
-// (which also exposes a KMSClient): notify pins `github.com/hanzoai/base v1.3.0`,
-// whose platform.KMSClient still targets the legacy Infisical URL shape
-// (`/api/v1/secrets/{orgId}/{secretPath}`). The canonical Hanzo KMS daemon
-// serves at `/v1/kms/orgs/{org}/secrets/{path}/{name}`, and IAM serves
-// machine tokens at `/v1/iam/oauth/access_token`. Bumping base across the
-// 2400+ commits between v1.3.0 and main would carry an unbounded blast
-// radius for one bug, so this package is the surgical fix: a tiny,
-// self-contained HTTP client that hits the canonical routes directly.
+// Canonical KMS routes (luxfi/kms post-canonical-migration):
+//   - GET/DELETE: /v1/kms/orgs/{org}/secrets/{path}/{name}
+//   - POST:       /v1/kms/orgs/{org}/secrets   (body: {path, name, value})
 //
-// Public API (Client.GetSecret / SetSecret / DeleteSecret /
-// InvalidateCache) is intentionally identical to
-// `github.com/hanzoai/base/plugins/platform.KMSClient` so callers can
-// swap the import path and otherwise leave the call sites alone.
+// Auth: IAM client_credentials grant at /v1/iam/oauth/access_token.
+// The bearer is cached in-process until 60s before expiry. A static
+// KMS_AUTH_TOKEN overrides the exchange — used by tests.
 //
-// Auth: IAM client_credentials grant against IAM_CLIENT_ID +
-// IAM_CLIENT_SECRET (envs). The bearer is cached in-process until 60s
-// before expiry. A static KMS_AUTH_TOKEN overrides the exchange — used
-// by tests.
+// The base/plugins/platform.KMSClient surface is kept identical
+// (GetSecret/SetSecret/DeleteSecret/InvalidateCache) so callers can
+// swap the import path without rewriting call sites.
 package kmsbridge
 
 import (

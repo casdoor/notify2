@@ -1,17 +1,8 @@
 // Package boot wires the shared dependencies notifyd needs at startup.
 //
 // In particular the KMS client: notifyd reads per-tenant provider
-// credentials out of Hanzo KMS via internal/kmsbridge — a tiny, self-
-// contained HTTP client that targets the canonical
-// `/v1/kms/orgs/{org}/secrets/{path}/{name}` routes the deployed
-// luxfi/kms server actually serves.
-//
-// Why not borrow `github.com/hanzoai/base/plugins/platform.KMSClient`?
-// That client at the version notify pins (`hanzoai/base v1.3.0`) still
-// targets the legacy Infisical URLs (`/api/v1/secrets/{org}/{path}`).
-// Bumping base to pick up the post-v1.3.0 platform/kms rewrite would
-// carry every other unrelated change since then. The bridge avoids
-// that by hitting KMS directly from notify.
+// credentials out of Hanzo KMS via internal/kmsbridge — an HTTP client
+// targeting canonical `/v1/kms/orgs/{org}/secrets/{path}/{name}` routes.
 //
 // Boot is intentionally tiny: one constructor + an env reader. The
 // rest of the wiring lives in main.go.

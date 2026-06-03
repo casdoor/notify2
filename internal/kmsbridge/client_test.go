@@ -3,11 +3,9 @@
 // httptest.NewServer mocks and assert on the URL shape, headers, and
 // caching behaviour. No external services touched.
 //
-// The point of these tests is to lock the canonical URL shapes that
-// the deployed liquid-kms (luxfi/kms@v1.9.11) and liquid-iam
-// (hanzoai/iam@v1.18.7) actually serve, so a future refactor cannot
-// silently regress to the legacy Infisical paths the way base v1.3.0
-// did.
+// These tests lock the canonical URL shapes that the deployed
+// luxfi/kms and hanzoai/iam serve, so a future refactor cannot
+// silently regress.
 package kmsbridge
 
 import (
