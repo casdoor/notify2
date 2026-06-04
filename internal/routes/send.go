@@ -199,6 +199,13 @@ func dispatchOne(ctx context.Context, app core.App, cfg Config, org string, req 
 		TemplateID: req.TemplateID,
 		Event:      req.Event,
 		Vars:       req.TemplateVars,
+		Category:   req.Category,
+		UserID:     req.UserID,
+		// Email defaults to text/html (matches the legacy
+		// amazonses.Send + sendgrid.Send behaviour where the body is
+		// treated as HTML). Non-email channels stay false so a future
+		// raw-MIME branch on those channels would emit text/plain.
+		IsHTML: req.Channel == types.ChannelEmail,
 	}
 
 	if sync {

@@ -19,6 +19,7 @@ import (
 	"github.com/hanzoai/base/plugins/platform"
 
 	"github.com/hanzoai/notify/internal/boot"
+	"github.com/hanzoai/notify/internal/marketing"
 	"github.com/hanzoai/notify/internal/routes"
 	"github.com/hanzoai/notify/internal/schema"
 	"github.com/hanzoai/notify/internal/tasks"
@@ -74,6 +75,38 @@ func main() {
 	}
 	activities := tasks.NewActivitiesWithChain(app, resolver, chainResolver)
 
+	// Unsubscribe HMAC signer. Required for the §5.1 one-click email
+	// unsubscribe endpoints AND for the §3.2 marketing-class send path
+	// (List-Unsubscribe header). Fail-closed boot in production: empty
+	// NOTIFY_UNSUBSCRIBE_SECRET → crash so the misconfiguration is
+	// loud. Test mode (the route test harness sets NOTIFY_TEST_MODE)
+	// degrades to nil signer; the routes then return 503 for the
+	// unsubscribe paths only, leaving the rest of the surface working.
+	var unsubSigner *unsubscribe.Signer
+	if secret := os.Getenv("NOTIFY_UNSUBSCRIBE_SECRET"); secret != "" {
+		s, err := unsubscribe.NewSigner(secret)
+		if err != nil {
+			log.Fatalf("notifyd: unsubscribe signer: %v", err)
+		}
+		unsubSigner = s
+	} else if os.Getenv("NOTIFY_TEST_MODE") == "" {
+		log.Fatalf("notifyd: NOTIFY_UNSUBSCRIBE_SECRET is required (set NOTIFY_TEST_MODE=1 to skip)")
+	}
+
+	// Marketing-header config. NOTIFY_ENV maps to the {env}. subdomain
+	// segment for the unsubscribe links: "dev" → notify.dev.satschel.com,
+	// "" / "main" / "prod" → notify.satschel.com. The host falls through
+	// to the production hostname when unset, so misconfigured pods send
+	// links the user can still click (just at the wrong env). Activities
+	// only injects headers when this is wired AND the send is marketing-
+	// class; everything else stays on the transactional path.
+	if unsubSigner != nil {
+		activities = activities.WithMarketing(&marketing.Config{
+			Env:    envOr("NOTIFY_ENV", ""),
+			Signer: unsubSigner,
+		})
+	}
+
 	// Tasks worker. TASKS_ADDR empty → no async — POST /v1/notify/send
 	// without ?sync=true then returns 503. This is intentional: per
 	// hanzoai/tasks/CONTRACT.md §3, production MUST set TASKS_ADDR; a
@@ -117,23 +150,6 @@ func main() {
 	var dispatcher tasks.Dispatcher
 	if worker != nil {
 		dispatcher = worker
-	}
-
-	// Unsubscribe HMAC signer. Required for the §5.1 one-click email
-	// unsubscribe endpoints. Fail-closed boot in production: empty
-	// NOTIFY_UNSUBSCRIBE_SECRET → crash so the misconfiguration is
-	// loud. Test mode (the route test harness sets NOTIFY_TEST_MODE)
-	// degrades to nil signer; the routes then return 503 for the
-	// unsubscribe paths only, leaving the rest of the surface working.
-	var unsubSigner *unsubscribe.Signer
-	if secret := os.Getenv("NOTIFY_UNSUBSCRIBE_SECRET"); secret != "" {
-		s, err := unsubscribe.NewSigner(secret)
-		if err != nil {
-			log.Fatalf("notifyd: unsubscribe signer: %v", err)
-		}
-		unsubSigner = s
-	} else if os.Getenv("NOTIFY_TEST_MODE") == "" {
-		log.Fatalf("notifyd: NOTIFY_UNSUBSCRIBE_SECRET is required (set NOTIFY_TEST_MODE=1 to skip)")
 	}
 
 	routes.MustRegister(app, routes.Config{

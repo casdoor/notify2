@@ -20,6 +20,21 @@ type SendInput struct {
 	TemplateID string         `json:"template_id,omitempty"`
 	Event      string         `json:"event,omitempty"`
 	Vars       map[string]any `json:"vars,omitempty"`
+
+	// Category is one of marketing.Category* on the marketing path or
+	// any transactional/regulatory tag (empty = transactional). Drives
+	// the List-Unsubscribe injection branch in Activities.Deliver.
+	Category string `json:"category,omitempty"`
+
+	// UserID is the destination user's IAM id. Required for marketing-
+	// class sends so the unsubscribe token signs on the right
+	// principal. Ignored on the transactional path.
+	UserID string `json:"user_id,omitempty"`
+
+	// IsHTML is the body's content-type hint. True → text/html in the
+	// MIME envelope; false → text/plain. Defaults to plain when the
+	// caller omits it; templates that produce HTML must set it.
+	IsHTML bool `json:"is_html,omitempty"`
 }
 
 // SendResult is the workflow return shape.

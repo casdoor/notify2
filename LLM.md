@@ -179,8 +179,23 @@ never returns them.
 - **List-Unsubscribe headers** (`internal/marketing`): RFC 8058 +
   RFC 2369 header builder. `List-Unsubscribe: <https-url>, <mailto>`
   + `List-Unsubscribe-Post: List-Unsubscribe=One-Click`. Per-send
-  token, 30-day expiry. Builder is decoupled from the send path so
-  callers can adopt it independently of the SES raw-MIME refactor.
+  token, 30-day expiry. Builder is decoupled from the send path —
+  call sites wire it via `tasks.Activities.WithMarketing(cfg)`.
+- **SES raw-MIME marketing path** (`service/amazonses/raw.go` +
+  `internal/tasks/activities.go`): when a send has `channel=email`
+  AND `category` ∈ {promotional, newsletter, product_update,
+  partner_offer, research} AND `marketing.Config` is wired,
+  `Activities.send` mints an unsubscribe token, persists it into
+  `notification_unsubscribe_tokens`, appends a visible footer
+  (HTML `<hr><p>…click here</a></p>` or plain `--\nUnsubscribe: …`),
+  and routes through `ProviderChain.RunMarketing`. Providers that
+  implement `RawSender` (today: `sesAPIChainProvider` →
+  `amazonses.AmazonSES.SendRaw` → `SendRawEmail`) deliver the
+  request as raw MIME so `List-Unsubscribe` + `List-Unsubscribe-Post`
+  reach the recipient untouched. Providers without `RawSender` fall
+  back to plain `Send` and the body footer is the only opt-out
+  signal. Header smuggling (CR/LF in extra header values) is
+  rejected at compose time.
 - **STOP keyword webhook** (`/v1/notify/sms-inbound`): one route
   accepts Plivo + Twilio (both providers post the same logical
   payload, just different field names). Matches

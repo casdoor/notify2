@@ -18,6 +18,17 @@ type sesClient interface {
 		params *ses.SendEmailInput,
 		optFns ...func(options *ses.Options),
 	) (*ses.SendEmailOutput, error)
+
+	// SendRawEmail is the raw-MIME path used by SendRaw for marketing
+	// emails that need to carry RFC 8058 List-Unsubscribe headers.
+	// SendEmail does not let callers inject custom headers — SendRawEmail
+	// takes a fully-formed MIME message instead. Both methods coexist on
+	// the same interface so a single client implementation backs both.
+	SendRawEmail(
+		ctx context.Context,
+		params *ses.SendRawEmailInput,
+		optFns ...func(options *ses.Options),
+	) (*ses.SendRawEmailOutput, error)
 }
 
 // Compile-time check to ensure that ses.Client implements the sesClient interface.

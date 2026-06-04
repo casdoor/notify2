@@ -199,6 +199,21 @@ type ChainProvider interface {
 	Send(ctx context.Context, subject, body string, to string) error
 }
 
+// RawSender is the optional extension a ChainProvider may implement to
+// expose a raw-MIME send path. Marketing-class email needs RFC 8058
+// List-Unsubscribe headers, and providers like SES whose plain Send
+// path cannot inject arbitrary headers wrap this around the SDK's
+// raw-message call (e.g. amazonses.AmazonSES.SendRaw → SendRawEmail).
+//
+// Providers that already pass headers through their SDK natively
+// (SendGrid via personalization.AddHeader, SMTP mail via
+// email.Email.Headers) can implement this as a thin shim too — but
+// for this PR only the SES API provider does, because that's the
+// SDK whose SendEmail API does not support headers at all.
+type RawSender interface {
+	SendRaw(ctx context.Context, subject, body string, isHTML bool, to string, headers map[string]string) error
+}
+
 // Run walks the chain. It returns the winning provider id and the
 // telemetry trace. If every provider fails it returns ErrChainExhausted
 // with the trace attached.
@@ -214,6 +229,26 @@ type ChainProvider interface {
 // Logger is optional; nil means no per-attempt log line is emitted.
 // The structured Attempt list is always returned in RunResult.
 func (c *ProviderChain) Run(ctx context.Context, to, subject, body string) (RunResult, error) {
+	return c.run(ctx, to, subject, body, false, nil, false)
+}
+
+// RunMarketing is Run plus RFC 8058 header injection for the marketing
+// class. For each provider attempt the chain prefers the RawSender
+// path when the provider implements it — that's how SES carries
+// List-Unsubscribe + List-Unsubscribe-Post across the SDK boundary.
+// Providers without RawSender fall back to plain Send; the body is
+// expected to already carry the visible "Unsubscribe: …" footer so
+// even those providers honour the spirit of the request, just not the
+// machine-actionable header.
+//
+// isHTML toggles the MIME Content-Type on the raw path; ignored when
+// the provider falls back to plain Send.
+func (c *ProviderChain) RunMarketing(ctx context.Context, to, subject, body string, isHTML bool, headers map[string]string) (RunResult, error) {
+	return c.run(ctx, to, subject, body, isHTML, headers, true)
+}
+
+// run is the shared walker behind Run + RunMarketing.
+func (c *ProviderChain) run(ctx context.Context, to, subject, body string, isHTML bool, headers map[string]string, marketing bool) (RunResult, error) {
 	res := RunResult{
 		Channel:  c.Channel,
 		Tenant:   c.Tenant,
@@ -244,7 +279,23 @@ func (c *ProviderChain) Run(ctx context.Context, to, subject, body string) (RunR
 
 		attemptCtx, attemptCancel := context.WithTimeout(outerCtx, perProviderAttemptTimeout)
 		started := time.Now().UTC()
-		err := p.Send(attemptCtx, subject, body, to)
+		var err error
+		if marketing {
+			if raw, ok := p.(RawSender); ok {
+				// Raw-MIME path: List-Unsubscribe + List-Unsubscribe-Post
+				// land in the envelope. SES needs this because SendEmail
+				// cannot inject custom headers.
+				err = raw.SendRaw(attemptCtx, subject, body, isHTML, to, headers)
+			} else {
+				// Provider does not implement RawSender — fall back to
+				// plain Send. The body already carries the visible
+				// "Unsubscribe: …" footer so the user can still opt out;
+				// only the native Gmail/Outlook button is missing.
+				err = p.Send(attemptCtx, subject, body, to)
+			}
+		} else {
+			err = p.Send(attemptCtx, subject, body, to)
+		}
 		dur := time.Since(started)
 		attemptCancel()
 
@@ -765,6 +816,15 @@ func (p *sesAPIChainProvider) Send(ctx context.Context, subject, body, to string
 	return p.svc.Send(ctx, subject, body)
 }
 
+// SendRaw runs the marketing-class send through SES SendRawEmail so the
+// caller-provided headers (List-Unsubscribe + List-Unsubscribe-Post)
+// reach the recipient untouched. isHTML toggles between text/html and
+// text/plain content type.
+func (p *sesAPIChainProvider) SendRaw(ctx context.Context, subject, body string, isHTML bool, to string, headers map[string]string) error {
+	p.svc.AddReceivers(to)
+	return p.svc.SendRaw(ctx, subject, body, isHTML, headers)
+}
+
 type sesSMTPChainProvider struct {
 	svc *mail.Mail
 }
@@ -794,6 +854,11 @@ var (
 	_ ChainProvider  = (*sesAPIChainProvider)(nil)
 	_ ChainProvider  = (*sesSMTPChainProvider)(nil)
 	_ ChainProvider  = (*sendgridChainProvider)(nil)
+
+	// SES API is the only provider that exposes RawSender for now —
+	// SendEmail cannot inject custom headers, so the raw-MIME path is
+	// the only way for List-Unsubscribe to ride along.
+	_ RawSender = (*sesAPIChainProvider)(nil)
 	_ notify.Notifier = (*plivo.Service)(nil)
 	_ notify.Notifier = (*twilio.Service)(nil)
 	_ notify.Notifier = (*sendgrid.SendGrid)(nil)

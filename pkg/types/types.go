@@ -57,6 +57,23 @@ type SendRequest struct {
 	// rate limits and routing overrides.
 	Event string `json:"event,omitempty"`
 
+	// Category tags the send with one of the §3.2 marketing buckets
+	// (promotional, newsletter, product_update, partner_offer,
+	// research) or any transactional/regulatory string. Marketing-class
+	// categories trigger List-Unsubscribe header injection and the
+	// SES SendRawEmail send path. Empty == treat as transactional.
+	//
+	// Sender ID is also derived from this field: marketing email goes
+	// out via SES + ListUnsubscribe headers per RFC 8058; everything
+	// else uses the plain SendEmail path.
+	Category string `json:"category,omitempty"`
+
+	// UserID identifies the destination user in IAM. Required when
+	// Category names a marketing bucket so the unsubscribe token can
+	// be signed for the right principal. Transactional sends accept
+	// an empty UserID — they have no unsubscribe link.
+	UserID string `json:"user_id,omitempty"`
+
 	// IdempotencyKey scopes deduplication per tenant. Two requests with
 	// the same (tenant, idempotency_key) return the same task_id and
 	// produce a single Message row.
