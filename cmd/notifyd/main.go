@@ -23,6 +23,7 @@ import (
 	"github.com/hanzoai/notify/internal/schema"
 	"github.com/hanzoai/notify/internal/tasks"
 	"github.com/hanzoai/notify/internal/tenant"
+	"github.com/hanzoai/notify/internal/unsubscribe"
 )
 
 func main() {
@@ -118,12 +119,30 @@ func main() {
 		dispatcher = worker
 	}
 
+	// Unsubscribe HMAC signer. Required for the §5.1 one-click email
+	// unsubscribe endpoints. Fail-closed boot in production: empty
+	// NOTIFY_UNSUBSCRIBE_SECRET → crash so the misconfiguration is
+	// loud. Test mode (the route test harness sets NOTIFY_TEST_MODE)
+	// degrades to nil signer; the routes then return 503 for the
+	// unsubscribe paths only, leaving the rest of the surface working.
+	var unsubSigner *unsubscribe.Signer
+	if secret := os.Getenv("NOTIFY_UNSUBSCRIBE_SECRET"); secret != "" {
+		s, err := unsubscribe.NewSigner(secret)
+		if err != nil {
+			log.Fatalf("notifyd: unsubscribe signer: %v", err)
+		}
+		unsubSigner = s
+	} else if os.Getenv("NOTIFY_TEST_MODE") == "" {
+		log.Fatalf("notifyd: NOTIFY_UNSUBSCRIBE_SECRET is required (set NOTIFY_TEST_MODE=1 to skip)")
+	}
+
 	routes.MustRegister(app, routes.Config{
-		Resolver:      resolver,
-		ChainResolver: chainResolver,
-		Dispatcher:    dispatcher,
-		KMSClient:     kmsClient,
-		PlivoResolver: plivoResolver,
+		Resolver:          resolver,
+		ChainResolver:     chainResolver,
+		Dispatcher:        dispatcher,
+		KMSClient:         kmsClient,
+		PlivoResolver:     plivoResolver,
+		UnsubscribeSigner: unsubSigner,
 	})
 
 	if err := app.Start(); err != nil {

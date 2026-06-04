@@ -16,6 +16,7 @@ import (
 	"github.com/hanzoai/notify/internal/kmsbridge"
 	"github.com/hanzoai/notify/internal/tasks"
 	"github.com/hanzoai/notify/internal/tenant"
+	"github.com/hanzoai/notify/internal/unsubscribe"
 )
 
 // Config wires the routes module to its collaborators.
@@ -46,6 +47,11 @@ type Config struct {
 	// fallback to the Liquidity default. Nil → /v1/notify/brand/plivo*
 	// returns 503.
 	PlivoResolver *tenant.PlivoResolver
+
+	// UnsubscribeSigner mints + verifies HMAC tokens for the one-click
+	// email unsubscribe surface (§5.1 of the notification-preferences
+	// paper). Nil → /v1/notify/unsubscribe and /resubscribe return 503.
+	UnsubscribeSigner *unsubscribe.Signer
 }
 
 // MustRegister installs the notify API on app's OnServe hook. The hook
@@ -65,6 +71,10 @@ func MustRegister(app *base.Base, cfg Config) {
 		mountMetering(e.Router, app)
 		mountTenants(e.Router, app)
 		MountBrandPlivo(e.Router, app, cfg.KMSClient, cfg.PlivoResolver)
+		// Phase 1 — notification-preferences paper.
+		mountPreferences(e.Router, app)
+		mountUnsubscribe(e.Router, app, cfg.UnsubscribeSigner)
+		mountSMSInbound(e.Router, app)
 		return e.Next()
 	})
 }
